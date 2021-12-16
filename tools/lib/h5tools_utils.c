@@ -43,7 +43,7 @@ hsize_t H5TOOLS_BUFSIZE = (32 * 1024 * 1024); /* 32 MB */
 /* ``parallel_print'' variables */
 unsigned char g_Parallel = 0; /*0 for serial, 1 for parallel */
 char          outBuff[OUTBUFF_SIZE];
-char *        p_diffOutput = NULL;
+char *        p_diffOutput     = NULL;
 int           p_diffOutputSize = 0;
 unsigned      outBuffOffset;
 FILE *        overflow_file = NULL;
@@ -55,15 +55,13 @@ static void dump_table(hid_t fid, char *tablename, table_t *table);
 #endif /* H5DUMP_DEBUG */
 static void add_obj(table_t *table, const H5O_token_t *obj_token, const char *objname, hbool_t recorded);
 
-
-#ifdef H5_HAVE_PARALLEL 
+#ifdef H5_HAVE_PARALLEL
 int
 get_global_hid_t(hid_t *flag)
 {
     int status = MPI_Bcast(flag, 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
     return status;
 }
-
 
 int
 get_global_flag(int *flag)
@@ -75,10 +73,9 @@ get_global_flag(int *flag)
 int
 ptools_barrier(void)
 {
-	return MPI_Barrier(MPI_COMM_WORLD);
+    return MPI_Barrier(MPI_COMM_WORLD);
 }
 #endif
-
 
 /*-------------------------------------------------------------------------
  * Function: parallel_print
@@ -99,18 +96,19 @@ parallel_print(const char *format, ...)
     else {
 #if defined(H5_HAVE_PARALLEL)
         if (current_diff != NULL) {
-            hbool_t completed = false;
+            hbool_t completed    = false;
             hsize_t outbuff_size = current_diff->outbuff_size;
             while (!completed) {
                 hsize_t outbuffoffset = current_diff->outbuffoffset;
-                char *outbuff = current_diff->outbuff;
+                char *  outbuff       = current_diff->outbuff;
 
-                bytes_written = HDvsnprintf(outbuff + outbuffoffset, outbuff_size - outbuffoffset, format, ap);
+                bytes_written =
+                    HDvsnprintf(outbuff + outbuffoffset, outbuff_size - outbuffoffset, format, ap);
                 HDva_end(ap);
                 HDva_start(ap, format);
 
                 if ((bytes_written < 0) || ((unsigned)bytes_written >= (outbuff_size - outbuffoffset))) {
-					current_diff->outbuff_size += OUTBUFF_SIZE;
+                    current_diff->outbuff_size += OUTBUFF_SIZE;
                     outbuff_size += OUTBUFF_SIZE;
                     current_diff->outbuff = realloc(outbuff, outbuff_size);
                 }
@@ -118,7 +116,7 @@ parallel_print(const char *format, ...)
                     completed = true;
                     current_diff->outbuffoffset += (unsigned)bytes_written;
                 }
-			}
+            }
         }
         else if (overflow_file == NULL) /*no overflow has occurred yet */ {
             bytes_written = HDvsnprintf(outBuff + outBuffOffset, OUTBUFF_SIZE - outBuffOffset, format, ap);
@@ -128,7 +126,7 @@ parallel_print(const char *format, ...)
             if ((bytes_written < 0) || ((unsigned)bytes_written >= (OUTBUFF_SIZE - outBuffOffset))) {
                 /* Terminate the outbuff at the end of the previous output */
                 outBuff[outBuffOffset] = '\0';
-                overflow_file = HDtmpfile();
+                overflow_file          = HDtmpfile();
                 if (overflow_file == NULL)
                     HDfprintf(rawerrorstream,
                               "warning: could not create overflow file.  Output may be truncated.\n");
