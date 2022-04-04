@@ -994,21 +994,46 @@ done:
  */
 herr_t
 H5D__contig_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                            hsize_t H5_ATTR_UNUSED nelmts, H5S_t *file_space, H5S_t *mem_space,
-                            H5D_chunk_map_t H5_ATTR_UNUSED *fm)
+		                    hsize_t H5_ATTR_UNUSED nelmts, const H5S_t *file_space, 
+                            const H5S_t *mem_space, H5D_chunk_map_t H5_ATTR_UNUSED *fm)
 {
     H5D_mpio_actual_io_mode_t actual_io_mode = H5D_MPIO_CONTIGUOUS_COLLECTIVE;
-    herr_t                    ret_value      = SUCCEED; /* Return value */
+    char *do_custom_agg;                       /* CCIO-read env variable */
+    hid_t file_space_hid;                      /* file space for CCIO */
+    hid_t mem_space_hid;                       /* memory space for CCIO */
+    herr_t ret_value      = SUCCEED;           /* Return value */
 
     FUNC_ENTER_PACKAGE
 
     /* Sanity check */
     HDassert(H5FD_MPIO == H5F_DRIVER_ID(io_info->dset->oloc.file));
 
+    /* Check for CCIO-read option */
+    do_custom_agg = HDgetenv("HDF5_CCIO_RD");
+    if (do_custom_agg && (strcmp(do_custom_agg,"yes") == 0)) {
+
+        /* Call shared_select_read (rather than `inter_collective` if using CCIO) */
+        file_space_hid = H5I_register(H5I_DATASPACE, file_space, TRUE);
+        mem_space_hid = H5I_register(H5I_DATASPACE, mem_space, TRUE);
+        
+        /* Issue selection I/O call (we can skip the page buffer because we've
+         * already verified it won't be used, and the metadata accumulator
+         * because this is raw data) */
+        if (H5F_shared_select_read(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, 1,
+                                   &mem_space, &file_space, &(io_info->store->contig.dset_addr),
+                                   &dst_type_size, &(io_info->u.rbuf)) < 0)
+            HGOTO_ERROR(H5E_DATASET, H5E_READERROR, FAIL, "contiguous selection read failed")
+
+        if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
+            H5Sclose(file_space_hid);
+        if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
+            H5Sclose(mem_space_hid);
+    } else {
     /* Call generic internal collective I/O routine */
     if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
         HGOTO_ERROR(H5E_IO, H5E_READERROR, FAIL, "couldn't finish shared collective MPI-IO")
 
+    }
     /* Set the actual I/O mode property. internal_collective_io will not break to
      * independent I/O, so we set it here.
      */
@@ -1033,21 +1058,45 @@ done:
  */
 herr_t
 H5D__contig_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                             hsize_t H5_ATTR_UNUSED nelmts, H5S_t *file_space, H5S_t *mem_space,
-                             H5D_chunk_map_t H5_ATTR_UNUSED *fm)
+                             hsize_t H5_ATTR_UNUSED nelmts, const H5S_t *file_space, 
+                             const H5S_t *mem_space, H5D_chunk_map_t H5_ATTR_UNUSED *fm)
 {
     H5D_mpio_actual_io_mode_t actual_io_mode = H5D_MPIO_CONTIGUOUS_COLLECTIVE;
-    herr_t                    ret_value      = SUCCEED; /* Return value */
+    char *do_custom_agg;                       /* CCIO-write env variable */
+    hid_t file_space_hid;                      /* file space for CCIO */
+    hid_t mem_space_hid;                       /* memory space for CCIO */
+    herr_t ret_value = SUCCEED;                /* Return value */
 
     FUNC_ENTER_PACKAGE
 
     /* Sanity check */
     HDassert(H5FD_MPIO == H5F_DRIVER_ID(io_info->dset->oloc.file));
 
+    /* Check for CCIO-write option */
+    do_custom_agg = HDgetenv("HDF5_CCIO_WR");
+    if (do_custom_agg && (strcmp(do_custom_agg,"yes") == 0)) {
+        /* Call shared_select_write (rather than `inter_collective` if using CCIO) */
+        hid_t file_space_hid = H5I_register(H5I_DATASPACE, file_space,TRUE);
+        hid_t mem_space_hid = H5I_register(H5I_DATASPACE, mem_space,TRUE);
+
+        /* Issue selection I/O call (we can skip the page buffer because we've
+         * already verified it won't be used, and the metadata accumulator
+         * because this is raw data) */
+        if (H5F_shared_select_write(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, 1,
+                                    &mem_space, &file_space, &(io_info->store->contig.dset_addr),
+                                    &dst_type_size, &(io_info->u.wbuf)) < 0)
+            HGOTO_ERROR(H5E_DATASET, H5E_WRITEERROR, FAIL, "contiguous selection write failed")
+
+        if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
+            H5Sclose(file_space_hid);
+        if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
+            H5Sclose(mem_space_hid);
+    } else {
     /* Call generic internal collective I/O routine */
     if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
         HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "couldn't finish shared collective MPI-IO")
 
+    }
     /* Set the actual I/O mode property. internal_collective_io will not break to
      * independent I/O, so we set it here.
      */
@@ -3801,7 +3850,7 @@ H5D__mpio_share_chunk_modification_data(H5D_filtered_collective_io_info_t *chunk
                                         H5D_filtered_collective_io_info_t **chunk_hash_table,
                                         unsigned char ***chunk_msg_bufs, int *chunk_msg_bufs_len)
 {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
     H5D_filtered_collective_io_info_t *chunk_table       = NULL;
     H5S_sel_iter_t *                   mem_iter          = NULL;
     unsigned char **                   msg_send_bufs     = NULL;
@@ -4023,7 +4072,7 @@ H5D__mpio_share_chunk_modification_data(H5D_filtered_collective_io_info_t *chunk
          * post a non-blocking receive to receive it
          */
         if (msg_flag) {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
             MPI_Count msg_size = 0;
 
             if (MPI_SUCCESS != (mpi_code = MPI_Get_elements_x(&status, MPI_BYTE, &msg_size)))
@@ -5768,7 +5817,7 @@ H5D__mpio_collective_filtered_io_type(H5D_filtered_collective_io_info_t *chunk_l
              * offset and base chunk data buffer.
              */
             if (op_type == H5D_IO_OP_WRITE) {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
                 if (MPI_SUCCESS != (mpi_code = MPI_Get_address(chunk_list[0].buf, &base_buf)))
                     HMPI_GOTO_ERROR(FAIL, "MPI_Get_address failed", mpi_code)
 #else
@@ -5793,7 +5842,7 @@ H5D__mpio_collective_filtered_io_type(H5D_filtered_collective_io_info_t *chunk_l
                      * data buffer if we haven't already
                      */
                     if (!H5F_addr_defined(base_offset)) {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
                         if (MPI_SUCCESS != (mpi_code = MPI_Get_address(chunk_list[i].buf, &base_buf)))
                             HMPI_GOTO_ERROR(FAIL, "MPI_Get_address failed", mpi_code)
 #else
@@ -5830,7 +5879,7 @@ H5D__mpio_collective_filtered_io_type(H5D_filtered_collective_io_info_t *chunk_l
                  * Set the displacement of the chunk entry's chunk data buffer,
                  * relative to the first entry's data buffer
                  */
-#if H5_CHECK_MPI_VERSION(3, 1)
+#if MPI_VERSION >= 3 && MPI_SUBVERSION >= 1
                 if (MPI_SUCCESS != (mpi_code = MPI_Get_address(chunk_list[i].buf, &chunk_buf)))
                     HMPI_GOTO_ERROR(FAIL, "MPI_Get_address failed", mpi_code)
 

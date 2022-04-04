@@ -223,7 +223,7 @@ H5S__mpio_create_point_datatype(size_t elmt_size, hsize_t num_points, MPI_Aint *
 
     /* Check whether standard or BIGIO processing will be employeed */
     if (bigio_count >= num_points) {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
         /* Create an MPI datatype for the whole point selection */
         if (MPI_SUCCESS !=
             (mpi_code = MPI_Type_create_hindexed_block((int)num_points, 1, disp, elmt_type, new_type)))
@@ -284,7 +284,7 @@ H5S__mpio_create_point_datatype(size_t elmt_size, hsize_t num_points, MPI_Aint *
 #endif
 
         for (i = 0; i < num_big_types; i++) {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
             if (MPI_SUCCESS != (mpi_code = MPI_Type_create_hindexed_block((int)bigio_count, 1,
                                                                           &disp[(hsize_t)i * bigio_count],
                                                                           elmt_type, &inner_types[i])))
@@ -300,7 +300,7 @@ H5S__mpio_create_point_datatype(size_t elmt_size, hsize_t num_points, MPI_Aint *
         } /* end for*/
 
         if (remaining_points) {
-#if H5_CHECK_MPI_VERSION(3, 0)
+#if MPI_VERSION >= 3
             if (MPI_SUCCESS != (mpi_code = MPI_Type_create_hindexed_block(
                                     remaining_points, 1, &disp[(hsize_t)num_big_types * bigio_count],
                                     elmt_type, &inner_types[num_big_types])))
@@ -962,6 +962,71 @@ done:
 #endif
     FUNC_LEAVE_NOAPI(ret_value)
 } /* end H5S__mpio_reg_hyper_type() */
+
+
+/*-------------------------------------------------------------------------
+ * Function:	H5S_mpio_return_space_rank_and_extent
+ *
+ * Purpose:	 This function allows the rank and extent of the space to 
+ *           accessed from the H5S_t structure from modules (like FD) 
+ *           outside of the space module.
+ *
+ * Return:	Non-negative on success, negative on failure.
+ *
+ * Outputs:	 
+ *
+ * Programmer:	 
+ *
+ *-------------------------------------------------------------------------
+ */
+
+herr_t
+H5S_mpio_return_space_rank_and_extent(const H5S_t *space, unsigned *rank, hsize_t *extent) 
+{
+
+    *rank = space->extent.rank;
+	*extent = 1;
+	for (int i=0;i<(*rank);i++) {
+		*extent *= space->extent.size[i];
+	}
+
+	herr_t      ret_value = SUCCEED;
+	return ret_value;
+}
+
+/*-------------------------------------------------------------------------
+ * Function:	H5S_mpio_return_space_extent_and_select_type
+ *
+ * Purpose:     This function allows the extent and select type of the 
+ *              space to be gotten from the H5S_t structure from modules 
+ *              like FD outside of the space module.
+ *
+ * Return:	Non-negative on success, negative on failure.
+ *
+ * Outputs:	 
+ *
+ * Programmer:	 
+ *
+ *-------------------------------------------------------------------------
+ */
+
+herr_t
+H5S_mpio_return_space_extent_and_select_type(const H5S_t *space, hbool_t *is_permuted,
+                                             hbool_t *is_regular, H5S_class_t *space_extent_type, 
+                                             H5S_sel_type *space_sel_type) 
+{
+
+    herr_t	ret_value = SUCCEED;    /* Return value */
+
+    FUNC_ENTER_NOAPI_NOINIT
+
+	*space_extent_type = H5S_GET_EXTENT_TYPE(space);
+	*space_sel_type = H5S_GET_SELECT_TYPE(space);
+	*is_regular = H5S_SELECT_IS_REGULAR(space);
+
+done:
+    FUNC_LEAVE_NOAPI(ret_value)
+}
 
 /*-------------------------------------------------------------------------
  * Function:	H5S__mpio_span_hyper_type
