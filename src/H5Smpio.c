@@ -981,7 +981,7 @@ done:
  */
 
 herr_t
-H5S_mpio_return_space_rank_and_extent(const H5S_t *space, unsigned *rank, hsize_t *extent) 
+H5S_mpio_return_space_rank_and_extent(const H5S_t *space, unsigned *rank, hsize_t *extent)
 {
 
     *rank = space->extent.rank;
@@ -1013,7 +1013,7 @@ H5S_mpio_return_space_rank_and_extent(const H5S_t *space, unsigned *rank, hsize_
 herr_t
 H5S_mpio_return_space_extent_and_select_type(const H5S_t *space, hbool_t *is_permuted,
                                              hbool_t *is_regular, H5S_class_t *space_extent_type, 
-                                             H5S_sel_type *space_sel_type) 
+                                             H5S_sel_type *space_sel_type)
 {
 
     herr_t	ret_value = SUCCEED;    /* Return value */

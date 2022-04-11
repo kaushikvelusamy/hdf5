@@ -1015,24 +1015,25 @@ H5D__contig_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_
         /* Call shared_select_read (rather than `inter_collective` if using CCIO) */
         file_space_hid = H5I_register(H5I_DATASPACE, file_space, TRUE);
         mem_space_hid = H5I_register(H5I_DATASPACE, mem_space, TRUE);
-        
-        /* Issue selection I/O call (we can skip the page buffer because we've
-         * already verified it won't be used, and the metadata accumulator
-         * because this is raw data) */
-        if (H5F_shared_select_read(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, 1,
-                                   &mem_space, &file_space, &(io_info->store->contig.dset_addr),
-                                   &dst_type_size, &(io_info->u.rbuf)) < 0)
-            HGOTO_ERROR(H5E_DATASET, H5E_READERROR, FAIL, "contiguous selection read failed")
+        if (io_info->use_select_io) {
+            size_t dst_type_size = type_info->dst_type_size;
+            /* Issue selection I/O call (we can skip the page buffer because we've
+            * already verified it won't be used, and the metadata accumulator
+            * because this is raw data) */
+            if (H5F_shared_select_read(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, 1,
+                                                  &mem_space, &file_space, &(io_info->store->contig.dset_addr),
+                                                  &dst_type_size, &(io_info->u.rbuf)) < 0)
+                HGOTO_ERROR(H5E_DATASET, H5E_READERROR, FAIL, "contiguous selection read failed")
 
-        if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
-            H5Sclose(file_space_hid);
-        if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
-            H5Sclose(mem_space_hid);
-    } else {
-    /* Call generic internal collective I/O routine */
-    if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
+            if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
+                H5Sclose(file_space_hid);
+            if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
+                H5Sclose(mem_space_hid);
+        } else {
+        /* Call generic internal collective I/O routine */
+        if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
         HGOTO_ERROR(H5E_IO, H5E_READERROR, FAIL, "couldn't finish shared collective MPI-IO")
-
+        }
     }
     /* Set the actual I/O mode property. internal_collective_io will not break to
      * independent I/O, so we set it here.
@@ -1079,23 +1080,27 @@ H5D__contig_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type
         hid_t file_space_hid = H5I_register(H5I_DATASPACE, file_space,TRUE);
         hid_t mem_space_hid = H5I_register(H5I_DATASPACE, mem_space,TRUE);
 
-        /* Issue selection I/O call (we can skip the page buffer because we've
-         * already verified it won't be used, and the metadata accumulator
-         * because this is raw data) */
-        if (H5F_shared_select_write(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, 1,
-                                    &mem_space, &file_space, &(io_info->store->contig.dset_addr),
-                                    &dst_type_size, &(io_info->u.wbuf)) < 0)
-            HGOTO_ERROR(H5E_DATASET, H5E_WRITEERROR, FAIL, "contiguous selection write failed")
+        if (io_info->use_select_io) {
+            size_t dst_type_size = type_info->dst_type_size;
 
-        if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
-            H5Sclose(file_space_hid);
-        if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
-            H5Sclose(mem_space_hid);
-    } else {
-    /* Call generic internal collective I/O routine */
-    if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
-        HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "couldn't finish shared collective MPI-IO")
+            /* Issue selection I/O call (we can skip the page buffer because we've
+             * already verified it won't be used, and the metadata accumulator
+             * because this is raw data) */
+        
+            if (H5F_shared_select_write(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, 1,
+                                                   &mem_space, &file_space, &(io_info->store->contig.dset_addr),
+                                                   &dst_type_size, &(io_info->u.wbuf)) < 0)
+                HGOTO_ERROR(H5E_DATASET, H5E_WRITEERROR, FAIL, "contiguous selection write failed")
 
+            if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
+                H5Sclose(file_space_hid);
+            if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
+                H5Sclose(mem_space_hid);
+        } else {
+        /* Call generic internal collective I/O routine */
+        if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
+            HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "couldn't finish shared collective MPI-IO")
+        }
     }
     /* Set the actual I/O mode property. internal_collective_io will not break to
      * independent I/O, so we set it here.

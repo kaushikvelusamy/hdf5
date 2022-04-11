@@ -318,6 +318,7 @@ static herr_t H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_
 
 /* The MPIO file driver information */
 static const H5FD_class_t H5FD_mpio_g = {
+    {   /* Start of superclass information */
     H5FD_CLASS_VERSION,      /* struct version       */
     H5_VFD_MPIO,             /* value                 */
     "mpio",                  /* name                  */
@@ -631,9 +632,9 @@ H5FD__mpio_term(void)
 herr_t
 H5Pset_fapl_mpio(hid_t fapl_id, MPI_Comm comm, MPI_Info info)
 {
-    H5FD_mpio_fapl_t	fa;
+    H5FD_mpio_fapl_t fa;
     H5P_genplist_t *plist; /* Property list pointer */
-    herr_t          ret_value;
+    herr_t ret_value;
 
     FUNC_ENTER_API(FAIL)
     H5TRACE3("e", "iMcMi", fapl_id, comm, info);
@@ -3598,7 +3599,7 @@ static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t d
      * Create flatbuf for FILE space selection
      */
 
-    if(H5S_select_iter_init(&sel_iter, file_space_stype, elmt_size) < 0)
+    if(H5S_select_iter_init(&sel_iter, file_space_stype, elmt_size, 0) < 0)
         HGOTO_ERROR(H5E_DATASPACE, H5E_CANTINIT, FAIL, "unable to initialize selection iterator")
 
     rc = H5S_mpio_return_space_extent_and_select_type(file_space_stype, &is_permuted, &is_regular, &file_space_extent_type, &file_space_sel_type);
@@ -3642,7 +3643,7 @@ static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t d
      * Create flatbuf for MEMORY space selection
      */
 
-    if(H5S_select_iter_init(&sel_iter, mem_space_stype, elmt_size) < 0)
+    if(H5S_select_iter_init(&sel_iter, mem_space_stype, elmt_size, 0) < 0)
         HGOTO_ERROR(H5E_DATASPACE, H5E_CANTINIT, FAIL, "unable to initialize selection iterator")
 
     rc = H5S_mpio_return_space_extent_and_select_type(mem_space_stype, &is_permuted, &is_regular, &mem_space_extent_type, &mem_space_sel_type);
@@ -3791,7 +3792,7 @@ static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dx
      * Create flatbuf for FILE space selection
      */
 
-    if(H5S_select_iter_init(&sel_iter, file_space_stype, elmt_size) < 0)
+    if(H5S_select_iter_init(&sel_iter, file_space_stype, elmt_size, 0) < 0)
         HGOTO_ERROR(H5E_DATASPACE, H5E_CANTINIT, FAIL, "unable to initialize selection iterator")
 
     rc = H5S_mpio_return_space_extent_and_select_type(file_space_stype, &is_permuted, &is_regular, &file_space_extent_type, &file_space_sel_type);
@@ -3819,7 +3820,7 @@ static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dx
      * Create flatbuf for MEMORY space selection
      */
 
-    if(H5S_select_iter_init(&sel_iter, mem_space_stype, elmt_size) < 0)
+    if(H5S_select_iter_init(&sel_iter, mem_space_stype, elmt_size, 0) < 0)
         HGOTO_ERROR(H5E_DATASPACE, H5E_CANTINIT, FAIL, "unable to initialize selection iterator")
 
     rc = H5S_mpio_return_space_extent_and_select_type(mem_space_stype, &is_permuted, &is_regular, &mem_space_extent_type, &mem_space_sel_type);
