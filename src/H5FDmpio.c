@@ -317,7 +317,7 @@ static herr_t H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_
 
 
 /* The MPIO file driver information */
-static const H5FD_class_t H5FD_mpio_g = {
+static const H5FD_class_mpi_t H5FD_mpio_g = {
     {   /* Start of superclass information */
     H5FD_CLASS_VERSION,      /* struct version       */
     H5_VFD_MPIO,             /* value                 */
@@ -518,7 +518,7 @@ H5FD_mpio_init(void)
 
     /* Register the MPI-IO VFD, if it isn't already */
     if (H5I_VFL != H5I_get_type(H5FD_MPIO_g)) {
-        H5FD_MPIO_g = H5FD_register((const H5FD_class_t *)&H5FD_mpio_g, sizeof(H5FD_class_t), FALSE);
+        H5FD_MPIO_g = H5FD_register((const H5FD_class_t *)&H5FD_mpio_g, sizeof(H5FD_class_mpi_t), FALSE);
 
         /* Check if MPI driver has been loaded dynamically */
         env = HDgetenv(HDF5_DRIVER);
@@ -3527,11 +3527,12 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
  *
  *-------------------------------------------------------------------------
  */
-static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id,
-    hid_t file_space, hid_t mem_space, size_t elmt_size, haddr_t addr, const void *buf)
+static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
+                                         hid_t mem_space, hid_t file_space, haddr_t addr, 
+                                         size_t element_sizes, const void *buf /*in*/) 
 {
     H5FD_mpio_t                 *file = (H5FD_mpio_t*)_file;
-    MPI_Offset                  mpi_off;
+    MPI_Offset                  mpi_off = addr;
     MPI_Status                  mpi_stat;       /* Status from I/O operation */
     H5S_t                       *file_space_stype;
     int                         file_space_ref_count;
@@ -3580,6 +3581,7 @@ static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t d
     if(H5FD_mpi_haddr_to_MPIOff(addr, &mpi_off) < 0)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from haddr to MPI off")
 
+    size_t elmt_size = element_sizes; 
     size_i = (int)elmt_size;
     if((hsize_t)size_i != elmt_size)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from elmt_size to size_i")
@@ -3729,12 +3731,13 @@ done:
  *
  *-------------------------------------------------------------------------
  */
-static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id,
-        hid_t file_space, hid_t mem_space, size_t elmt_size, haddr_t addr, void *buf)
+static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
+                                        hid_t mem_space,hid_t file_space, haddr_t addr, 
+                                        size_t element_sizes, void *buf /*out*/)
 {
 
     H5FD_mpio_t                 *file = (H5FD_mpio_t*)_file;
-    MPI_Offset                  mpi_off;
+    MPI_Offset                  mpi_off = addr;
     MPI_Status                  mpi_stat;       /* Status from I/O operation */
     H5S_t                       *file_space_stype;
     int                         file_space_ref_count;
@@ -3772,7 +3775,7 @@ static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dx
     /* some numeric conversions */
     if(H5FD_mpi_haddr_to_MPIOff(addr, &mpi_off) < 0)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from haddr to MPI off")
-
+    size_t elmt_size = element_sizes; 
     size_i = (int)elmt_size;
     if((hsize_t)size_i != elmt_size)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from elmt_size to size_i")
