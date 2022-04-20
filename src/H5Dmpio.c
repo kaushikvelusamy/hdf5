@@ -1316,8 +1316,8 @@ done:
  */
 herr_t
 H5D__chunk_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                           hsize_t H5_ATTR_UNUSED nelmts, H5S_t H5_ATTR_UNUSED *file_space,
-                           H5S_t H5_ATTR_UNUSED *mem_space, H5D_chunk_map_t *fm)
+                           hsize_t H5_ATTR_UNUSED nelmts, const H5S_t H5_ATTR_UNUSED *file_space,
+                           const H5S_t H5_ATTR_UNUSED *mem_space, H5D_chunk_map_t *fm)
 {
     herr_t ret_value = SUCCEED; /* Return value */
 
@@ -1346,8 +1346,8 @@ done:
  */
 herr_t
 H5D__chunk_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                            hsize_t H5_ATTR_UNUSED nelmts, H5S_t H5_ATTR_UNUSED *file_space,
-                            H5S_t H5_ATTR_UNUSED *mem_space, H5D_chunk_map_t *fm)
+                            hsize_t H5_ATTR_UNUSED nelmts, const H5S_t H5_ATTR_UNUSED *file_space,
+                            const H5S_t H5_ATTR_UNUSED *mem_space, H5D_chunk_map_t *fm)
 {
     herr_t ret_value = SUCCEED; /* Return value */
 

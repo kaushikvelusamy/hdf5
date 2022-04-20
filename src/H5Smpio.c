@@ -981,7 +981,7 @@ done:
  */
 
 herr_t
-H5S_mpio_return_space_rank_and_extent(const H5S_t *space, unsigned *rank, hsize_t *extent)
+H5S_mpio_return_space_rank_and_extent(const H5S_t *space, int *rank, hsize_t *extent)
 {
 
     *rank = space->extent.rank;

@@ -221,6 +221,13 @@ void H5FD_mpio_ccio_file_read(CustomAgg_FH_Data ca_data, int *error_code,
 
 void *IO_Thread_Func(void *vptr_args);
 
+void H5FD_mpio_calc_offset_list(ADIO_Offset_CA
+    memFlatBufSize, H5S_flatbuf_t *fileFlatBuf, MPI_Offset mpi_off,
+    ADIO_Offset_CA **offset_list_ptr, ADIO_Offset_CA
+    **len_list_ptr, ADIO_Offset_CA *start_offset_ptr,
+    ADIO_Offset_CA *end_offset_ptr, int
+    *contig_access_count_ptr);
+
 /***********************************/
 /* END CCIO Typedefs and Functions */
 /***********************************/
@@ -299,13 +306,16 @@ static herr_t H5FD__mpio_vector_build_types(
     hbool_t *buf_type_created, MPI_Datatype *file_type, hbool_t *file_type_created, char *unused);
 
 /* CCIO related functions */
-static void *H5FD__mpio_fapl_get(H5FD_t *_file);
+void *H5FD__mpio_fapl_get(H5FD_t *_file);
 static void *H5FD__mpio_fapl_copy(const void *_old_fa);
 static herr_t H5FD__mpio_fapl_free(void *_fa);
-static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id,
-            hid_t file_space, hid_t mem_space, size_t elmt_size, haddr_t addr, void *buf);
-static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id,
-            hid_t file_space, hid_t mem_space, size_t elmt_size, haddr_t addr, const void *buf);
+static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count,
+            hid_t mem_space, hid_t file_space, haddr_t addr, size_t elmt_size, void *buf);
+
+
+
+static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count,
+            hid_t mem_space, hid_t file_space, haddr_t addr, size_t elmt_size, const void *buf);
 static int H5FD__mpio_mpi_rank(const H5FD_t *_file);
 static int H5FD__mpio_mpi_size(const H5FD_t *_file);
 static MPI_Comm H5FD__mpio_communicator(const H5FD_t *_file);
@@ -314,7 +324,8 @@ static herr_t  H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_Fil
 static herr_t  H5FD_mpio_ccio_cleanup(const H5FD_mpio_t *file);
 static herr_t H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
             H5S_sel_iter_t *sel_iter, H5S_t *space_stype, size_t elmt_size, hbool_t is_regular);
-
+static herr_t HDF5_ccio_win_setup(CustomAgg_FH_Data ca_data, int procs);
+// static herr_t H5FD_mpio_get_info(H5FD_t *_file, void** mpi_info);
 
 /* The MPIO file driver information */
 static const H5FD_class_mpi_t H5FD_mpio_g = {
@@ -688,9 +699,9 @@ H5Pget_fapl_mpio(hid_t fapl_id, MPI_Comm *comm /*out*/, MPI_Info *info /*out*/)
 {
     H5P_genplist_t         *plist;                   /* Property list pointer */
     const H5FD_mpio_fapl_t *fa;                      /* MPIO fapl info */
-    MPI_Comm	            comm_tmp = MPI_COMM_NULL;
-    hbool_t                 comm_copied = FALSE;     /* MPI Comm has been duplicated */
-    int		                mpi_code;		         /* MPI return code */
+    // MPI_Comm	            comm_tmp = MPI_COMM_NULL;
+    // hbool_t                 comm_copied = FALSE;     /* MPI Comm has been duplicated */
+    // int		                mpi_code;		         /* MPI return code */
     herr_t                  ret_value = SUCCEED;     /* Return value */
 
     FUNC_ENTER_API(FAIL)
@@ -1107,8 +1118,8 @@ H5FD__mpio_open(const char *name, unsigned flags, hid_t fapl_id, haddr_t H5_ATTR
     hbool_t H5FD_mpio_debug_t_flag = FALSE;
 #endif
     int     mpi_code;         /* MPI return code */
-    const H5FD_mpio_fapl_t	*fa = NULL;
-    H5FD_mpio_fapl_t		_fa;
+    // const H5FD_mpio_fapl_t	*fa = NULL;
+    // H5FD_mpio_fapl_t		_fa;
     H5FD_t *ret_value = NULL; /* Return value */
 
     FUNC_ENTER_STATIC
@@ -3357,7 +3368,7 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         }
 
         flatBufSize = 0;
-        for (int j=0;j<curflatbuf->count;j++) {
+        for (uint64_t j=0;j<curflatbuf->count;j++) {
             flatBufSize += curflatbuf->blocklens[j];
         }
         curflatbuf->size = flatBufSize;
@@ -3399,7 +3410,7 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         }
 
         flatBufSize = 0;
-        for (int j=0;j<curflatbuf->count;j++) {
+        for (uint64_t j=0;j<curflatbuf->count;j++) {
             flatBufSize += curflatbuf->blocklens[j];
         }
         curflatbuf->size = flatBufSize;
@@ -3482,7 +3493,7 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         }
 
         flatBufSize = 0;
-        for (int j=0;j<curflatbuf->count;j++) {
+        for (uint64_t j=0;j<curflatbuf->count;j++) {
             flatBufSize += curflatbuf->blocklens[j];
         }
         curflatbuf->size = flatBufSize;
@@ -3527,27 +3538,32 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
  *
  *-------------------------------------------------------------------------
  */
+
 static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
-                                         hid_t mem_space, hid_t file_space, haddr_t addr, 
-                                         size_t element_sizes, const void *buf /*in*/) 
+                                         hid_t mem_spaces[], hid_t file_spaces[], haddr_t  offsets[], 
+                                         size_t element_sizes[], const void *buf[] /*in*/) 
 {
+    hid_t                       mem_space = mem_spaces[0];
+    hid_t                       file_space = file_spaces[0];
+    MPI_Offset                  mpi_off;
+    haddr_t                     addr = offsets[0];
+    size_t                      elmt_size = element_sizes[0];
     H5FD_mpio_t                 *file = (H5FD_mpio_t*)_file;
-    MPI_Offset                  mpi_off = addr;
     MPI_Status                  mpi_stat;       /* Status from I/O operation */
     H5S_t                       *file_space_stype;
     int                         file_space_ref_count;
     H5S_t                       *mem_space_stype;
-    int                         mem_space_ref_count;
-    int                         mpi_code;       /* MPI return code */
-#if MPI_VERSION >= 3
-    MPI_Count                   bytes_written;
-    MPI_Count                   type_size;      /* MPI datatype used for I/O's size */
-    MPI_Count                   io_size;        /* Actual number of bytes requested */
-#else
-    int                         bytes_written;
-    int                         type_size;      /* MPI datatype used for I/O's size */
-    int                         io_size;        /* Actual number of bytes requested */
-#endif
+    int                         mem_space_ref_count;   
+//     int                         mpi_code;       /* MPI return code */
+// #if MPI_VERSION >= 3
+//     MPI_Count                   bytes_written;
+//     MPI_Count                   type_size;      /* MPI datatype used for I/O's size */
+//     MPI_Count                   io_size;        /* Actual number of bytes requested */
+// #else
+//     int                         bytes_written;
+//     int                         type_size;      /* MPI datatype used for I/O's size */
+//     int                         io_size;        /* Actual number of bytes requested */
+// #endif
     int                         size_i;
     H5P_genplist_t              *plist = NULL;  /* Property list pointer */
     H5FD_mpio_xfer_t            xfer_mode;      /* I/O tranfer mode */
@@ -3562,7 +3578,7 @@ static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t d
     H5S_sel_type                file_space_sel_type;
     H5S_sel_type                mem_space_sel_type;
     herr_t                      rc = 0;
-    hsize_t                     *permute_map = NULL;
+    // hsize_t                     *permute_map = NULL;
 
     /* Note: permute_map array holds the mapping from the old (out-of-order)
      * displacements to the in-order displacements of the H5S_flatbuf_t of the
@@ -3581,11 +3597,11 @@ static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t d
     if(H5FD_mpi_haddr_to_MPIOff(addr, &mpi_off) < 0)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from haddr to MPI off")
 
-    size_t elmt_size = element_sizes; 
+     
     size_i = (int)elmt_size;
     if((hsize_t)size_i != elmt_size)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from elmt_size to size_i")
-
+    HDassert(count==1);
     HDassert(file);
     HDassert(H5FD_MPIO==file->pub.driver_id);
 
@@ -3732,12 +3748,15 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
-                                        hid_t mem_space,hid_t file_space, haddr_t addr, 
-                                        size_t element_sizes, void *buf /*out*/)
+                                        hid_t mem_spaces[],hid_t file_spaces[], haddr_t offsets[], 
+                                        size_t element_sizes[], void *buf[] /*out*/)
 {
-
+    hid_t                       mem_space = mem_spaces[0];
+    hid_t                       file_space = file_spaces[0];
+    MPI_Offset                  mpi_off;
+    haddr_t                     addr = offsets[0];
+    size_t                      elmt_size = element_sizes[0];
     H5FD_mpio_t                 *file = (H5FD_mpio_t*)_file;
-    MPI_Offset                  mpi_off = addr;
     MPI_Status                  mpi_stat;       /* Status from I/O operation */
     H5S_t                       *file_space_stype;
     int                         file_space_ref_count;
@@ -3757,7 +3776,7 @@ static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dx
     H5S_sel_type                file_space_sel_type;
     H5S_sel_type                mem_space_sel_type;
     herr_t                      rc = 0;
-    hsize_t                     *permute_map = NULL;
+   // hsize_t                     *permute_map = NULL;
 
     /* Note: permute_map array holds the mapping from the old (out-of-order)
      * displacements to the in-order displacements of the H5S_flatbuf_t of the
@@ -3775,11 +3794,11 @@ static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dx
     /* some numeric conversions */
     if(H5FD_mpi_haddr_to_MPIOff(addr, &mpi_off) < 0)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from haddr to MPI off")
-    size_t elmt_size = element_sizes; 
     size_i = (int)elmt_size;
     if((hsize_t)size_i != elmt_size)
         HGOTO_ERROR(H5E_INTERNAL, H5E_BADRANGE, FAIL, "can't convert from elmt_size to size_i")
 
+    HDassert(count==1);
     HDassert(file);
     HDassert(H5FD_MPIO==file->pub.driver_id);
 
@@ -3893,6 +3912,8 @@ done:
  *
  *-------------------------------------------------------------------------
 */
+/* 
+
 static herr_t
 H5FD_mpio_get_info(H5FD_t *_file, void** mpi_info)
 {
@@ -3909,7 +3930,9 @@ H5FD_mpio_get_info(H5FD_t *_file, void** mpi_info)
 done:
     FUNC_LEAVE_NOAPI(ret_value)
 
-} /* H5FD_mpio_get_info() */
+} 
+*/
+/* H5FD_mpio_get_info() */
 
 /*-------------------------------------------------------------------------
  * Function:	H5FD__mpio_fapl_get
@@ -3926,7 +3949,7 @@ done:
  *
  *-------------------------------------------------------------------------
  */
-static void *
+void *
 H5FD__mpio_fapl_get(H5FD_t *_file)
 {
     H5FD_mpio_t		*file = (H5FD_mpio_t*)_file;
@@ -4224,7 +4247,7 @@ static herr_t H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_File
     char *ccio_rd_method = HDgetenv("HDF5_CCIO_RD_METHOD");
     char *do_async_io = HDgetenv("HDF5_CCIO_ASYNC");
     char *set_cb_nodes_stride = HDgetenv("HDF5_CCIO_CB_STRIDE");
-    char *use_file_system = HDgetenv("HDF5_CCIO_FS");
+    // char *use_file_system = HDgetenv("HDF5_CCIO_FS");
     char *do_topo_select = HDgetenv("HDF5_CCIO_TOPO_CB_SELECT");
     char *set_ppn = HDgetenv("HDF5_CCIO_TOPO_PPN");
     char *set_pps = HDgetenv("HDF5_CCIO_TOPO_PPS");
@@ -4232,7 +4255,7 @@ static herr_t H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_File
     int custom_agg_debug = 0;
     int mpi_rank = file->mpi_rank;       /* MPI rank of this process */
     int mpi_size = file->mpi_size;       /* Total number of MPI processes */
-    int i, rc;
+    int i;
     herr_t ret_value = SUCCEED;
 
     FUNC_ENTER_NOAPI_NOINIT
@@ -4471,8 +4494,8 @@ void H5FD_mpio_calc_offset_list(ADIO_Offset_CA
     ADIO_Offset_CA *end_offset_ptr, int
     *contig_access_count_ptr)
 {
-    int i, j, k;
-    int st_index=0;
+    // int i, j, k;
+    // int st_index=0;
     int contig_access_count;
     ADIO_Offset_CA *len_list;
     ADIO_Offset_CA *offset_list;
@@ -4497,7 +4520,7 @@ void H5FD_mpio_calc_offset_list(ADIO_Offset_CA
         /* first count how many entries we will need to malloc correct amount of memory*/
         ADIO_Offset_CA bytesRemaining = memFlatBufSize;
         int fbindex = 0;
-        int contig_access_count = 0;
+        contig_access_count = 0;
         while (bytesRemaining > 0) {
             contig_access_count++;
             bytesRemaining -= fileFlatBuf->blocklens[fbindex++];
@@ -4553,12 +4576,12 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
 
     int i, nprocs, myrank;
     int contig_access_count = 0;
-    ADIO_Offset_CA start_offset, end_offset, fd_size, min_st_offset, off;
+    ADIO_Offset_CA start_offset, end_offset, fd_size, min_st_offset;
     ADIO_Offset_CA *offset_list = NULL, *st_offsets = NULL, *fd_start = NULL, *fd_end = NULL, *end_offsets = NULL;
     ADIO_Offset_CA *len_list = NULL;
     int *fs_block_info = NULL;
-    ADIO_Offset_CA **buf_idx = NULL;
-    int old_error, tmp_error;
+    // ADIO_Offset_CA **buf_idx = NULL;
+    // int old_error, tmp_error;
     ADIO_Offset_CA *fs_offsets0, *fs_offsets, *count_sizes;
 
     MPI_Comm_size(ca_data->comm, &nprocs);
@@ -4718,7 +4741,7 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
 
         H5FD_mpio_ccio_osagg_write(ca_data, offset_list, len_list, contig_access_count,
         buf, memFlatBuf, error_code, firstFileOffset, lastFileOffset,
-        currentValidDataIndex, fd_start, fd_end, &holeFound, &noStripeParms);
+        currentValidDataIndex, fd_start, fd_end, holeFound, &noStripeParms);
 
         int anyHolesFound = 0;
         if (!(ca_data->onesided_no_rmw))
@@ -4748,7 +4771,7 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
                 ca_data->onesided_no_rmw = 1;
                 H5FD_mpio_ccio_osagg_write(ca_data, offset_list, len_list, contig_access_count,
                 buf, memFlatBuf, error_code, firstFileOffset, lastFileOffset,
-                currentValidDataIndex, fd_start, fd_end, &holeFound, &noStripeParms);
+                currentValidDataIndex, fd_start, fd_end, holeFound, &noStripeParms);
                 ca_data->onesided_no_rmw = prev_onesided_no_rmw;
                 H5MM_free(offset_list);
                 H5MM_free(len_list);
@@ -4827,9 +4850,9 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
      * This function reads a fileFlatBuf into a memFlatBuf
      */
 
-    int i, ii, nprocs, nprocs_for_coll, myrank;
+    int i, ii, nprocs, myrank;
     int contig_access_count=0;
-    ADIO_Offset_CA start_offset, end_offset, fd_size, min_st_offset, off;
+    ADIO_Offset_CA start_offset, end_offset, fd_size, min_st_offset;
     ADIO_Offset_CA *offset_list = NULL, *st_offsets = NULL, *fd_start = NULL,
     *fd_end = NULL, *end_offsets = NULL;
     ADIO_Offset_CA *len_list = NULL;
@@ -5822,7 +5845,7 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
     ADIO_Offset_CA bufTypeExtent = (ADIO_Offset_CA)currentFDSourceBufferState->bufTypeExtent;
     ADIO_Offset_CA currentDataTypeExtent = currentFDSourceBufferState->dataTypeExtent;
     int currentFlatBufIndice = currentFDSourceBufferState->flatBufIndice;
-    int targetSendDataIndex = 0;
+    long targetSendDataIndex = 0;
 
 #ifdef onesidedtrace
     printf("H5FD_mpio_nc_buffer_advance: currentFlatBufIndice is %d currentDataTypeExtent is %ld currentIndiceOffset is %ld\n",currentFlatBufIndice,currentDataTypeExtent,currentIndiceOffset);
@@ -5834,7 +5857,7 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
             ADIO_Offset_CA physicalSourceBufferOffset = (currentDataTypeExtent * bufTypeExtent) + flatBuf->indices[currentFlatBufIndice] + currentIndiceOffset;
 
 #ifdef onesidedtrace
-            printf("loading remainingBytesToLoad %d from src buffer offset %ld to targetSendDataIndex %d\n",remainingBytesToLoad,physicalSourceBufferOffset,targetSendDataIndex);
+            printf("loading remainingBytesToLoad %d from src buffer offset %ld to targetSendDataIndex %ld\n",remainingBytesToLoad,physicalSourceBufferOffset,targetSendDataIndex);
 #endif
 
             if (packedDataBufer != NULL) {
@@ -5862,7 +5885,7 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
             ADIO_Offset_CA physicalSourceBufferOffset = (currentDataTypeExtent * bufTypeExtent) + flatBuf->indices[currentFlatBufIndice] + currentIndiceOffset;
 
 #ifdef onesidedtrace
-            printf("loading amountDataToLoad %d from src buffer offset %ld to targetSendDataIndex %d\n",amountDataToLoad,physicalSourceBufferOffset,targetSendDataIndex);
+            printf("loading amountDataToLoad %d from src buffer offset %ld to targetSendDataIndex %ld\n",amountDataToLoad,physicalSourceBufferOffset,targetSendDataIndex);
 #endif
             if (packedDataBufer != NULL) {
                 if (packing)
@@ -6189,7 +6212,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
                         currentFlatBufIndice--;
                         if (currentFlatBufIndice < 0 ) {
                             currentDataTypeExtent--;
-                            currentFlatBufIndice = memFlatBuf->count-1;
+                            currentFlatBufIndice = (int)memFlatBuf->count-1;
                         }
                         currentIndiceOffset =  len_list[blockIter-1] - (sourceBlockTotal - memFlatBuf->blocklens[lastIndiceUsed]);
                     }
@@ -7100,7 +7123,7 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
      * faster access - pay for pointer dereference only once.
      */
     int stripeSize = stripe_parms->stripeSize;
-    int segmentIter = stripe_parms->segmentIter;
+    // int segmentIter = stripe_parms->segmentIter;
     hsize_t bufTypeExtent = stripe_parms->bufTypeExtent;
 
     if ((stripeSize > 0) && stripe_parms->firstStripedIOCall)
@@ -7937,19 +7960,19 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
 
                          if ((offsetStart >= currentRoundFDStartForMySourceAgg) && (offsetStart <= currentRoundFDEndForMySourceAgg)) {
                              if (offsetEnd > currentRoundFDEndForMySourceAgg)
-                                 bufferAmountToRecv = (currentRoundFDEndForMySourceAgg - offsetStart) + 1;
+                                 bufferAmountToRecv = (int)(currentRoundFDEndForMySourceAgg - offsetStart) + 1;
                              else
-                                 bufferAmountToRecv = (offsetEnd - offsetStart) + 1;
+                                 bufferAmountToRecv = (int)(offsetEnd - offsetStart) + 1;
                          } else if ((offsetEnd >= currentRoundFDStartForMySourceAgg) && (offsetEnd <= currentRoundFDEndForMySourceAgg)) {
                              if (offsetEnd > currentRoundFDEndForMySourceAgg)
-                                 bufferAmountToRecv = (currentRoundFDEndForMySourceAgg - currentRoundFDStartForMySourceAgg) + 1;
+                                 bufferAmountToRecv = (int)(currentRoundFDEndForMySourceAgg - currentRoundFDStartForMySourceAgg) + 1;
                              else
-                                 bufferAmountToRecv = (offsetEnd - currentRoundFDStartForMySourceAgg) + 1;
+                                 bufferAmountToRecv = (int)(offsetEnd - currentRoundFDStartForMySourceAgg) + 1;
                              if (offsetStart < currentRoundFDStartForMySourceAgg) {
                                  offsetStart = currentRoundFDStartForMySourceAgg;
                              }
                          } else if ((offsetStart <= currentRoundFDStartForMySourceAgg) && (offsetEnd >= currentRoundFDEndForMySourceAgg)) {
-                             bufferAmountToRecv = (currentRoundFDEndForMySourceAgg - currentRoundFDStartForMySourceAgg) + 1;
+                             bufferAmountToRecv = (int)(currentRoundFDEndForMySourceAgg - currentRoundFDStartForMySourceAgg) + 1;
                              offsetStart = currentRoundFDStartForMySourceAgg;
                          }
 
@@ -8148,9 +8171,9 @@ void H5FD_mpio_ccio_file_read(CustomAgg_FH_Data ca_data, int *error_code,
     ADIO_Offset_CA firstFileOffset, ADIO_Offset_CA lastFileOffset,
     ADIO_Offset_CA *fd_start, ADIO_Offset_CA* fd_end)
  {
-     int i,j; /* generic iterators */
+     int j; /* generic iterators */
      int naggs, iAmUsedAgg, myAggRank;
-     MPI_Status status;
+     // MPI_Status status;
      int nprocs, myrank;
      int greatestFileDomainAggRank, smallestFileDomainAggRank;
      ADIO_Offset_CA greatestFileDomainOffset, smallestFileDomainOffset;
@@ -8228,10 +8251,10 @@ void H5FD_mpio_ccio_file_read(CustomAgg_FH_Data ca_data, int *error_code,
          int read_size;
          if ((fd_end[myAggRank] - readFDStart) < coll_bufsize) {
              readFDEnd = fd_end[myAggRank];
-             read_size = ((readFDEnd - readFDStart) + 1);
+             read_size = (int)((readFDEnd - readFDStart) + 1);
          } else {
              readFDEnd = readFDStart + coll_bufsize - (ADIO_Offset_CA) 1;
-             read_size = coll_bufsize;
+             read_size = (int)coll_bufsize;
          }
 
          /* Read 'read_size' bytes */

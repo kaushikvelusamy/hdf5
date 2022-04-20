@@ -449,7 +449,7 @@ int distance_to_io_node ( int src_rank ) {
 int topology_aware_list_serial ( int64_t* tally, int64_t nb_aggr, int* agg_list, int ppn, int pps, MPI_Comm comm )
 {
     int i, r, agg_ind, aggr_nprocs, nprocs, latency, bandwidth, distance_to_io, distance, rank;
-    int agg_to_calc, aggr_comm_rank, aggr_comm_size, ranks_per_agg, ind_i, ind_m, ind_f;
+    //int agg_to_calc, aggr_comm_rank, aggr_comm_size, ranks_per_agg, ind_i, ind_m, ind_f;
     MPI_Comm_rank ( comm, &rank );
     MPI_Comm_size ( comm, &nprocs );
     int64_t *data_distribution;

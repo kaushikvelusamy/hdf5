@@ -721,18 +721,18 @@ H5_DLL herr_t H5D__mpio_select_write(const H5D_io_info_t *io_info, const H5D_typ
 
 /* MPI-IO functions to handle contiguous collective IO */
 H5_DLL herr_t H5D__contig_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                                          hsize_t nelmts, H5S_t *file_space, H5S_t *mem_space,
+                                          hsize_t nelmts, const H5S_t *file_space, const H5S_t *mem_space,
                                           H5D_chunk_map_t *fm);
 H5_DLL herr_t H5D__contig_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                                           hsize_t nelmts, H5S_t *file_space, H5S_t *mem_space,
+                                           hsize_t nelmts, const H5S_t *file_space, const H5S_t *mem_space,
                                            H5D_chunk_map_t *fm);
 
 /* MPI-IO functions to handle chunked collective IO */
 H5_DLL herr_t H5D__chunk_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                                         hsize_t nelmts, H5S_t *file_space, H5S_t *mem_space,
+                                         hsize_t nelmts, const H5S_t *file_space, const H5S_t *mem_space,
                                          H5D_chunk_map_t *fm);
 H5_DLL herr_t H5D__chunk_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type_info,
-                                          hsize_t nelmts, H5S_t *file_space, H5S_t *mem_space,
+                                          hsize_t nelmts, const H5S_t *file_space, const H5S_t *mem_space,
                                           H5D_chunk_map_t *fm);
 
 /* MPI-IO function to check if a direct I/O transfer is possible between
