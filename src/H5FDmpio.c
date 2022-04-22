@@ -309,13 +309,12 @@ static herr_t H5FD__mpio_vector_build_types(
 void *H5FD__mpio_fapl_get(H5FD_t *_file);
 static void *H5FD__mpio_fapl_copy(const void *_old_fa);
 static herr_t H5FD__mpio_fapl_free(void *_fa);
-static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count,
-            hid_t mem_space, hid_t file_space, haddr_t addr, size_t elmt_size, void *buf);
-
-
-
-static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count,
-            hid_t mem_space, hid_t file_space, haddr_t addr, size_t elmt_size, const void *buf);
+static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
+                                        hid_t mem_spaces[],hid_t file_spaces[], haddr_t offsets[], 
+                                        size_t element_sizes[], void *buf[] /*out*/);
+static herr_t H5FD__mpio_write_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
+                                         hid_t mem_spaces[], hid_t file_spaces[], haddr_t  offsets[], 
+                                         size_t element_sizes[], const void *buf[] /*in*/); 
 static int H5FD__mpio_mpi_rank(const H5FD_t *_file);
 static int H5FD__mpio_mpi_size(const H5FD_t *_file);
 static MPI_Comm H5FD__mpio_communicator(const H5FD_t *_file);

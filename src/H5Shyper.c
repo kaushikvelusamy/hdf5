@@ -167,6 +167,15 @@ static void    H5S__hyper_get_clip_diminfo(hsize_t start, hsize_t stride, hsize_
                                            hsize_t clip_size);
 static hsize_t H5S__hyper_get_clip_extent_real(const H5S_t *clip_space, hsize_t num_slices,
                                                hbool_t incl_trail);
+static herr_t H5S__hyper_get_seq_list_single(const H5S_t *space, H5S_sel_iter_t *iter, size_t maxseq, 
+                                            size_t maxelem, size_t *nseq, size_t *nelem,
+                                            hsize_t *off, size_t *len);
+static herr_t H5S__hyper_get_seq_list_opt(const H5S_t *space, H5S_sel_iter_t *iter, size_t maxseq, 
+                                            size_t maxelem, size_t *nseq, size_t *nelem, hsize_t *off, size_t *len);
+static herr_t H5S__hyper_get_seq_list_gen(const H5S_t *space, H5S_sel_iter_t *iter, size_t maxseq, 
+                                            size_t maxelem, size_t *nseq, size_t *nelem, hsize_t *off, size_t *len);
+ 
+
 
 /* Selection callbacks */
 static herr_t   H5S__hyper_copy(H5S_t *dst, const H5S_t *src, hbool_t share_selection);
