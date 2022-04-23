@@ -3444,7 +3444,7 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         /* Check for flattened selection, if so use the selection iter_rank for the number of
          * dimensions instead of the space rank.
          */
-        if(sel_iter->u.hyp.iter_rank != 0 && sel_iter->u.hyp.iter_rank < numSpaceDims)
+        if(sel_iter->u.hyp.iter_rank != 0 && sel_iter->u.hyp.iter_rank < (unsigned int)numSpaceDims)
             numSelDims = sel_iter->u.hyp.iter_rank;
         else
             numSelDims = numSpaceDims;
@@ -4340,7 +4340,7 @@ static herr_t H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_File
             /* Allow 'outer' pipelining if this is LUSTRE-like mapping */
             if(file->custom_agg_data.fslayout == LUSTRE) {
                 file->custom_agg_data.async_io_outer = 1;
-                file->custom_agg_data.io_buf_d = (char *) H5MM_malloc(tot_cb_bufsize*sizeof(char));
+                file->custom_agg_data.io_buf_d = (char *) H5MM_malloc((unsigned long)tot_cb_bufsize*sizeof(char));
             }
             /* Allow 'inner' pipelining if this is GPFS-like mapping */
             else {
@@ -4350,7 +4350,7 @@ static herr_t H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_File
                 file->custom_agg_data.pthread_io = 1; /* pthreads needed for current 'inner' approach */
             }
         }
-        file->custom_agg_data.io_buf = (char *) H5MM_malloc(tot_cb_bufsize*sizeof(char));
+        file->custom_agg_data.io_buf = (char *) H5MM_malloc((unsigned long)tot_cb_bufsize*sizeof(char));
         file->custom_agg_data.io_buf_put_amounts_d = 0;
         file->custom_agg_data.io_buf_window_d = MPI_WIN_NULL;
         file->custom_agg_data.io_buf_put_amounts_window_d = MPI_WIN_NULL;
@@ -4372,12 +4372,13 @@ static herr_t H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_File
         }
 
         if (custom_agg_debug && (mpi_rank == 0)) {
-            fprintf(stdout,"Custom aggregation info on mpio_open: MPI_MAX_INFO_VAL is %d H5FD_mpio_open fh is %016lx cb_buffer_size is %d cb_nodes is %d fs_block_count is %d fs_block_size is %d\n",MPI_MAX_INFO_VAL,fh,file->custom_agg_data.cb_buffer_size,file->custom_agg_data.cb_nodes,file->custom_agg_data.fs_block_count,file->custom_agg_data.fs_block_size);
+            fprintf(stdout,"Custom aggregation info on mpio_open: MPI_MAX_INFO_VAL is %d H5FD_mpio_open fh is %016lx cb_buffer_size is %d cb_nodes is %d fs_block_count is %d fs_block_size is %d\n",
+                            MPI_MAX_INFO_VAL,fh,file->custom_agg_data.cb_buffer_size, file->custom_agg_data.cb_nodes,file->custom_agg_data.fs_block_count, file->custom_agg_data.fs_block_size);
             fflush(stdout);
         }
 
         /* Generate the initial ranklist using a constant stride between ranks */
-        file->custom_agg_data.ranklist = (int *) H5MM_malloc(mpi_size * sizeof(int));
+        file->custom_agg_data.ranklist = (int *) H5MM_malloc((unsigned long)mpi_size * sizeof(int));
         for (i=0;i<mpi_size;i++)
             file->custom_agg_data.ranklist[i] = i;
         int cb_nodes_stride = mpi_size / file->custom_agg_data.cb_nodes;
@@ -4422,7 +4423,6 @@ static herr_t H5FD_mpio_ccio_setup(const char *name, H5FD_mpio_t *file, MPI_File
         }
 
     }
-
 done:
     FUNC_LEAVE_NOAPI(ret_value)
 } /* H5FD_mpio_ccio_setup */
@@ -4528,8 +4528,8 @@ void H5FD_mpio_calc_offset_list(ADIO_Offset_CA
         printf("memFlatBufSize is %ld contig_access_count is %d\n",memFlatBufSize,contig_access_count);
         fflush(stdout);
 #endif
-        *offset_list_ptr = (ADIO_Offset_CA *) H5MM_malloc(contig_access_count*sizeof(ADIO_Offset_CA));
-        *len_list_ptr = (ADIO_Offset_CA *) H5MM_malloc(contig_access_count*sizeof(ADIO_Offset_CA));
+        *offset_list_ptr = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)contig_access_count*sizeof(ADIO_Offset_CA));
+        *len_list_ptr = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)contig_access_count*sizeof(ADIO_Offset_CA));
         offset_list = *offset_list_ptr;
         len_list = *len_list_ptr;
 
@@ -4627,16 +4627,16 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
     * processes. The result is an array each of start and end offsets
     * stored in order of process rank.
     */
-    st_offsets = (ADIO_Offset_CA *) H5MM_malloc(nprocs * sizeof(ADIO_Offset_CA));
-    end_offsets = (ADIO_Offset_CA *) H5MM_malloc(nprocs * sizeof(ADIO_Offset_CA));
+    st_offsets = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs * sizeof(ADIO_Offset_CA));
+    end_offsets = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs * sizeof(ADIO_Offset_CA));
 
     /* One-sided aggregation needs the amount of data per rank as well because
     * the difference in starting and ending offsets for 1 byte is 0 the same
     * as 0 bytes so it cannot be distiguished.
     */
-    count_sizes = (ADIO_Offset_CA *) H5MM_malloc(nprocs*sizeof(ADIO_Offset_CA));
-    fs_offsets0 = (ADIO_Offset_CA *) H5MM_malloc(3*nprocs*sizeof(ADIO_Offset_CA));
-    fs_offsets  = (ADIO_Offset_CA *) H5MM_malloc(3*nprocs*sizeof(ADIO_Offset_CA));
+    count_sizes = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs*sizeof(ADIO_Offset_CA));
+    fs_offsets0 = (ADIO_Offset_CA *) H5MM_malloc(3*(unsigned long)nprocs*sizeof(ADIO_Offset_CA));
+    fs_offsets  = (ADIO_Offset_CA *) H5MM_malloc(3*(unsigned long)nprocs*sizeof(ADIO_Offset_CA));
     for (i=0; i<nprocs; i++)  {
         fs_offsets0[i*3]   = 0;
         fs_offsets0[i*3+1] = 0;
@@ -4903,16 +4903,16 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
     /* each process communicates its start and end offsets to other
     processes. The result is an array each of start and end offsets stored
     in order of process rank. */
-    st_offsets = (ADIO_Offset_CA *) H5MM_malloc(nprocs*sizeof(ADIO_Offset_CA));
-    end_offsets = (ADIO_Offset_CA *) H5MM_malloc(nprocs*sizeof(ADIO_Offset_CA));
+    st_offsets = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs*sizeof(ADIO_Offset_CA));
+    end_offsets = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs*sizeof(ADIO_Offset_CA));
 
     /* One-sided aggregation needs the amount of data per rank as well because
     * the difference in starting and ending offsets for 1 byte is 0 the same
     * as 0 bytes so it cannot be distiguished.
     */
-    count_sizes = (ADIO_Offset_CA *) H5MM_malloc(nprocs*sizeof(ADIO_Offset_CA));
-    fs_offsets0 = (ADIO_Offset_CA *) H5MM_malloc(3*nprocs*sizeof(ADIO_Offset_CA));
-    fs_offsets  = (ADIO_Offset_CA *) H5MM_malloc(3*nprocs*sizeof(ADIO_Offset_CA));
+    count_sizes = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs*sizeof(ADIO_Offset_CA));
+    fs_offsets0 = (ADIO_Offset_CA *) H5MM_malloc(3*(unsigned long)nprocs*sizeof(ADIO_Offset_CA));
+    fs_offsets  = (ADIO_Offset_CA *) H5MM_malloc(3*(unsigned long)nprocs*sizeof(ADIO_Offset_CA));
     for (ii=0; ii<nprocs; ii++)  {
         fs_offsets0[ii*3]   = 0;
         fs_offsets0[ii*3+1] = 0;
@@ -5137,8 +5137,8 @@ void H5FD_mpio_ccio_iterate_write(CustomAgg_FH_Data ca_data, const void *buf,
     /* These arrays define the file offsets for the stripes for a given segment - similar
     * to the concept of file domains in GPFS, essentially file domeains for the segment.
     */
-    ADIO_Offset_CA *segment_stripe_start = (ADIO_Offset_CA *) H5MM_malloc(numStripedAggs*sizeof(ADIO_Offset_CA));
-    ADIO_Offset_CA *segment_stripe_end = (ADIO_Offset_CA *) H5MM_malloc(numStripedAggs*sizeof(ADIO_Offset_CA));
+    ADIO_Offset_CA *segment_stripe_start = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)numStripedAggs*sizeof(ADIO_Offset_CA));
+    ADIO_Offset_CA *segment_stripe_end = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)numStripedAggs*sizeof(ADIO_Offset_CA));
 
     /* Find the actual range of stripes in the file that have data in the offset
     * ranges being written -- skip holes at the front and back of the file.
@@ -5490,13 +5490,13 @@ void H5FD_mpio_ccio_iterate_write(CustomAgg_FH_Data ca_data, const void *buf,
     /* These arrays define the file offsets for the stripes for a given segment - similar
     * to the concept of file domains in GPFS, essentially file domeains for the segment.
     */
-    ADIO_Offset_CA *segment_stripe_start = (ADIO_Offset_CA *) H5MM_malloc(numStripedAggs*sizeof(ADIO_Offset_CA));
-    ADIO_Offset_CA *segment_stripe_end = (ADIO_Offset_CA *) H5MM_malloc(numStripedAggs*sizeof(ADIO_Offset_CA));
+    ADIO_Offset_CA *segment_stripe_start = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)numStripedAggs*sizeof(ADIO_Offset_CA));
+    ADIO_Offset_CA *segment_stripe_end = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)numStripedAggs*sizeof(ADIO_Offset_CA));
     ADIO_Offset_CA *segment_stripe_start_next;
     ADIO_Offset_CA *segment_stripe_end_next;
     if (ca_data->async_io_outer) {
-        segment_stripe_start_next = (ADIO_Offset_CA *) H5MM_malloc(numStripedAggs*sizeof(ADIO_Offset_CA));
-        segment_stripe_end_next = (ADIO_Offset_CA *) H5MM_malloc(numStripedAggs*sizeof(ADIO_Offset_CA));
+        segment_stripe_start_next = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)numStripedAggs*sizeof(ADIO_Offset_CA));
+        segment_stripe_end_next = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)numStripedAggs*sizeof(ADIO_Offset_CA));
     }
 
     /* Find the actual range of stripes in the file that have data in the offset
@@ -5852,8 +5852,8 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
 
     int remainingBytesToLoad = targetNumBytes;
     while (remainingBytesToLoad > 0) {
-        if ((flatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset) >= remainingBytesToLoad) { // we can get the rest of our data from this indice
-            ADIO_Offset_CA physicalSourceBufferOffset = (currentDataTypeExtent * bufTypeExtent) + flatBuf->indices[currentFlatBufIndice] + currentIndiceOffset;
+        if ((flatBuf->blocklens[currentFlatBufIndice] - (unsigned long)currentIndiceOffset) >= remainingBytesToLoad) { // we can get the rest of our data from this indice
+            ADIO_Offset_CA physicalSourceBufferOffset = (currentDataTypeExtent * bufTypeExtent) + (long)flatBuf->indices[currentFlatBufIndice] + currentIndiceOffset;
 
 #ifdef onesidedtrace
             printf("loading remainingBytesToLoad %d from src buffer offset %ld to targetSendDataIndex %ld\n",remainingBytesToLoad,physicalSourceBufferOffset,targetSendDataIndex);
@@ -5868,10 +5868,10 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
 
             targetSendDataIndex += remainingBytesToLoad;
             currentIndiceOffset += (ADIO_Offset_CA)remainingBytesToLoad;
-            if (currentIndiceOffset >= flatBuf->blocklens[currentFlatBufIndice]) {
+            if (currentIndiceOffset >= (long)flatBuf->blocklens[currentFlatBufIndice]) {
                 currentIndiceOffset = (ADIO_Offset_CA)0;
                 currentFlatBufIndice++;
-                if (currentFlatBufIndice == flatBuf->count) {
+                if (currentFlatBufIndice == (int)flatBuf->count) {
                     currentFlatBufIndice = 0;
                     currentDataTypeExtent++;
                 }
@@ -5880,8 +5880,8 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
 
         }
         else { // we can only get part of our data from this indice
-            ADIO_Offset_CA amountDataToLoad = (flatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset);
-            ADIO_Offset_CA physicalSourceBufferOffset = (currentDataTypeExtent * bufTypeExtent) + flatBuf->indices[currentFlatBufIndice] + currentIndiceOffset;
+            ADIO_Offset_CA amountDataToLoad = ((long)flatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset);
+            ADIO_Offset_CA physicalSourceBufferOffset = (currentDataTypeExtent * bufTypeExtent) + (long)flatBuf->indices[currentFlatBufIndice] + currentIndiceOffset;
 
 #ifdef onesidedtrace
             printf("loading amountDataToLoad %d from src buffer offset %ld to targetSendDataIndex %ld\n",amountDataToLoad,physicalSourceBufferOffset,targetSendDataIndex);
@@ -5913,7 +5913,7 @@ inline static void H5FD_mpio_nc_buffer_advance(char *sourceDataBuffer,
 #ifdef onesidedtrace
     printf("source buf advanced to currentFlatBufIndice %d currentDataTypeExtent %ld currentIndiceOffset %ld\n",currentFlatBufIndice,currentDataTypeExtent,currentIndiceOffset);
 #endif
-}; /* H5FD_mpio_nc_buffer_advance */
+} /* H5FD_mpio_nc_buffer_advance */
 
 /*-------------------------------------------------------------------------
  * Function:    H5FD_mpio_ccio_osagg_write
@@ -5985,7 +5985,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
 
     *error_code = MPI_SUCCESS; /* initialize to success */
 
-    MPI_Status status;
+    //MPI_Status status;
     int nprocs,myrank;
     MPI_Comm_size(ca_data->comm, &nprocs);
     MPI_Comm_rank(ca_data->comm, &myrank);
@@ -6039,7 +6039,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
     printf("Rank %d - sizeof(FDSourceBufferState_CA) is %d - make sure is 32 for 32-byte memalign optimal\n",myrank,sizeof(FDSourceBufferState_CA));
 #endif
 
-    FDSourceBufferState_CA *currentFDSourceBufferState = (FDSourceBufferState_CA *) H5MM_malloc(naggs * sizeof(FDSourceBufferState_CA));
+    FDSourceBufferState_CA *currentFDSourceBufferState = (FDSourceBufferState_CA *) H5MM_malloc((unsigned long)naggs * sizeof(FDSourceBufferState_CA));
 
     for (i=0;i<naggs;i++) {
         /* Initialize based on the bufType to indicate that it is unset.
@@ -6112,17 +6112,17 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
     /* Data structures to track what data this compute needs to send to whom.
      * For lustre they will all need another dimension for the file domain.
      */
-    int *targetAggsForMyData = (int *)H5MM_malloc(naggs * sizeof(int));
-    ADIO_Offset_CA *targetAggsForMyDataFDStart = (ADIO_Offset_CA *)H5MM_malloc(naggs * sizeof(ADIO_Offset_CA));
-    ADIO_Offset_CA *targetAggsForMyDataFDEnd = (ADIO_Offset_CA *)H5MM_malloc(naggs * sizeof(ADIO_Offset_CA));
+    int *targetAggsForMyData = (int *)H5MM_malloc((unsigned long)naggs * sizeof(int));
+    ADIO_Offset_CA *targetAggsForMyDataFDStart = (ADIO_Offset_CA *)H5MM_malloc((unsigned long)naggs * sizeof(ADIO_Offset_CA));
+    ADIO_Offset_CA *targetAggsForMyDataFDEnd = (ADIO_Offset_CA *)H5MM_malloc((unsigned long)naggs * sizeof(ADIO_Offset_CA));
     int numTargetAggs = 0;
 
     /* This data structure holds the beginning offset and len list index for the range to be written
      * coresponding to the round and target agg.  Initialize to -1 to denote being unset.
      */
-    int **targetAggsForMyDataFirstOffLenIndex = (int **)H5MM_malloc(numberOfRounds * sizeof(int *));
+    int **targetAggsForMyDataFirstOffLenIndex = (int **)H5MM_malloc((unsigned long)numberOfRounds * sizeof(int *));
     for (i=0;i<numberOfRounds;i++) {
-        targetAggsForMyDataFirstOffLenIndex[i] = (int *)H5MM_malloc(naggs * sizeof(int));
+        targetAggsForMyDataFirstOffLenIndex[i] = (int *)H5MM_malloc((unsigned long)naggs * sizeof(int));
         for (j=0;j<naggs;j++)
             targetAggsForMyDataFirstOffLenIndex[i][j] = -1;
     }
@@ -6130,9 +6130,9 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
     /* This data structure holds the ending offset and len list index for the range to be written
      * coresponding to the round and target agg.
      */
-    int **targetAggsForMyDataLastOffLenIndex = (int **)H5MM_malloc(numberOfRounds * sizeof(int *));
+    int **targetAggsForMyDataLastOffLenIndex = (int **)H5MM_malloc((unsigned long)numberOfRounds * sizeof(int *));
     for (i=0;i<numberOfRounds;i++)
-        targetAggsForMyDataLastOffLenIndex[i] = (int *)H5MM_malloc(naggs * sizeof(int));
+        targetAggsForMyDataLastOffLenIndex[i] = (int *)H5MM_malloc((unsigned long)naggs * sizeof(int));
 
 #ifdef onesidedtrace
     printf("Rank %d - NumberOfRounds is %d\n",myrank,numberOfRounds);
@@ -6167,7 +6167,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
 
     /* This data structure tracks what target aggs need to be written to on what rounds.
      */
-    int *targetAggsForMyDataCurrentRoundIter = (int *)H5MM_malloc(naggs * sizeof(int));
+    int *targetAggsForMyDataCurrentRoundIter = (int *)H5MM_malloc((unsigned long)naggs * sizeof(int));
     for (i=0;i<naggs;i++)
         targetAggsForMyDataCurrentRoundIter[i] = 0;
 
@@ -6198,10 +6198,10 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
 
                     while (sourceBlockTotal < len_list[blockIter-1]) {
                         numNonContigSourceChunks++;
-                        sourceBlockTotal += (memFlatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset);
+                        sourceBlockTotal += ((long)memFlatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset);
                         lastIndiceUsed = currentFlatBufIndice;
                         currentFlatBufIndice++;
-                        if (currentFlatBufIndice == memFlatBuf->count) {
+                        if (currentFlatBufIndice == (int)memFlatBuf->count) {
                             currentFlatBufIndice = 0;
                             currentDataTypeExtent++;
                         }
@@ -6213,7 +6213,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
                             currentDataTypeExtent--;
                             currentFlatBufIndice = (int)memFlatBuf->count-1;
                         }
-                        currentIndiceOffset =  len_list[blockIter-1] - (sourceBlockTotal - memFlatBuf->blocklens[lastIndiceUsed]);
+                        currentIndiceOffset =  len_list[blockIter-1] - (sourceBlockTotal - (long)memFlatBuf->blocklens[lastIndiceUsed]);
                     }
                     else
                     currentIndiceOffset = (ADIO_Offset_CA)0;
@@ -6239,7 +6239,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
                     lastNumNonContigSourceChunks++;
                     sourceBlockTotal += memFlatBuf->blocklens[tmpCurrentFlatBufIndice];
                     tmpCurrentFlatBufIndice++;
-                    if (tmpCurrentFlatBufIndice == memFlatBuf->count) {
+                    if (tmpCurrentFlatBufIndice == (int)memFlatBuf->count) {
                         tmpCurrentFlatBufIndice = 0;
                     }
                 }
@@ -6446,9 +6446,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
                                 currentFDSourceBufferState[numTargetAggs].flatBufIndice =
                                 currentFDSourceBufferState[numTargetAggs-1].flatBufIndice;
                             }
-                            H5FD_mpio_nc_buffer_advance(((char*)buf), memFlatBuf,
-                            (int)amountToAdvanceSBOffsetForFD, 1,
-                            &currentFDSourceBufferState[numTargetAggs], NULL);
+                            H5FD_mpio_nc_buffer_advance(((char*)buf), memFlatBuf, (int)amountToAdvanceSBOffsetForFD, 1, &currentFDSourceBufferState[numTargetAggs], NULL);
 #ifdef onesidedtrace
                             printf("Rank %d - Crossed into new FD - for agg %d dataTypeExtent initialized to %ld flatBufIndice to %d indiceOffset to %ld amountToAdvanceSBOffsetForFD is %d\n",myrank,numTargetAggs,currentFDSourceBufferState[numTargetAggs].dataTypeExtent,currentFDSourceBufferState[numTargetAggs].flatBufIndice,currentFDSourceBufferState[numTargetAggs].indiceOffset,amountToAdvanceSBOffsetForFD);
 #endif
@@ -6563,8 +6561,8 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
 
         if ((stripeSize > 0) && (segmentIter == 0)) {
             stripe_parms->numStripesUsed = 0;
-            stripe_parms->stripeIOoffsets = (MPI_Offset *) H5MM_malloc(stripe_parms->stripesPerAgg*sizeof(MPI_Offset));
-            stripe_parms->stripeIOLens = (int *) H5MM_malloc(stripe_parms->stripesPerAgg*sizeof(int));
+            stripe_parms->stripeIOoffsets = (MPI_Offset *) H5MM_malloc((unsigned long)stripe_parms->stripesPerAgg*sizeof(MPI_Offset));
+            stripe_parms->stripeIOLens = (int *) H5MM_malloc((unsigned long)stripe_parms->stripesPerAgg*sizeof(int));
             stripe_parms->amountOfStripedDataExpected = 0;
             int stripeIter = 0;
             for (stripeIter=0;stripeIter<stripe_parms->stripesPerAgg;stripeIter++) {
@@ -6618,8 +6616,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
             printf("Rank %d - ca_data->onesided_always_rmw - first buffer pre-read for file offsets %ld to %ld total is %d\n",myrank,currentRoundFDStart,tmpCurrentRoundFDEnd,(int)(tmpCurrentRoundFDEnd - currentRoundFDStart)+1);
 #endif
             if (stripeSize==0) {
-                MPI_File_read_at(ca_data->fh, currentRoundFDStart, write_buf, (int)(tmpCurrentRoundFDEnd - currentRoundFDStart)+1,
-                MPI_BYTE,  error_code);
+                MPI_File_read_at(ca_data->fh, currentRoundFDStart, write_buf, (int)(tmpCurrentRoundFDEnd - currentRoundFDStart)+1, MPI_BYTE,  error_code);
             }
             else {
                 /* pre-read the entire batch of stripes we will do before writing */
@@ -6711,21 +6708,21 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
 
                         if ((offsetStart >= currentRoundFDStartForMyTargetAgg) && (offsetStart <= currentRoundFDEndForMyTargetAgg)) {
                             if (offsetEnd > currentRoundFDEndForMyTargetAgg)
-                                bufferAmountToSend = (currentRoundFDEndForMyTargetAgg - offsetStart) +1;
+                                bufferAmountToSend = (int)(currentRoundFDEndForMyTargetAgg - offsetStart) +1;
                             else
-                                bufferAmountToSend = (offsetEnd - offsetStart) +1;
+                                bufferAmountToSend = (int)(offsetEnd - offsetStart) +1;
                         }
                         else if ((offsetEnd >= currentRoundFDStartForMyTargetAgg) && (offsetEnd <= currentRoundFDEndForMyTargetAgg)) {
                             if (offsetEnd > currentRoundFDEndForMyTargetAgg)
                                 bufferAmountToSend = (currentRoundFDEndForMyTargetAgg - currentRoundFDStartForMyTargetAgg) +1;
                             else
-                                bufferAmountToSend = (offsetEnd - currentRoundFDStartForMyTargetAgg) +1;
+                                bufferAmountToSend = (int)(offsetEnd - currentRoundFDStartForMyTargetAgg) +1;
                             if (offsetStart < currentRoundFDStartForMyTargetAgg) {
                                 offsetStart = currentRoundFDStartForMyTargetAgg;
                             }
                         }
                         else if ((offsetStart <= currentRoundFDStartForMyTargetAgg) && (offsetEnd >= currentRoundFDEndForMyTargetAgg)) {
-                            bufferAmountToSend = (currentRoundFDEndForMyTargetAgg - currentRoundFDStartForMyTargetAgg) +1;
+                            bufferAmountToSend = (int)(currentRoundFDEndForMyTargetAgg - currentRoundFDStartForMyTargetAgg) +1;
                             offsetStart = currentRoundFDStartForMyTargetAgg;
                         }
 
@@ -6739,10 +6736,10 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
                                 /* Only allocate these arrays if we are using method 2 and only do it once for this round/target agg.
                                  */
                                 if (!allocatedDerivedTypeArrays) {
-                                    targetAggBlockLengths = (int *)H5MM_malloc(maxNumContigOperations * sizeof(int));
-                                    targetAggDisplacements = (MPI_Aint *)H5MM_malloc(maxNumContigOperations * sizeof(MPI_Aint));
-                                    sourceBufferDisplacements = (MPI_Aint *)H5MM_malloc(maxNumContigOperations * sizeof(MPI_Aint));
-                                    targetAggDataTypes = (MPI_Datatype *)H5MM_malloc(maxNumContigOperations * sizeof(MPI_Datatype));
+                                    targetAggBlockLengths = (int *)H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(int));
+                                    targetAggDisplacements = (MPI_Aint *)H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(MPI_Aint));
+                                    sourceBufferDisplacements = (MPI_Aint *)H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(MPI_Aint));
+                                    targetAggDataTypes = (MPI_Datatype *)H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(MPI_Datatype));
                                     if (!bufTypeIsContig) {
                                         int k;
                                         for (k=targetAggsForMyDataFirstOffLenIndex[roundIter][aggIter];k<=targetAggsForMyDataLastOffLenIndex[roundIter][aggIter];k++)
@@ -6753,7 +6750,7 @@ void H5FD_mpio_ccio_osagg_write(CustomAgg_FH_Data ca_data,
 #endif
 
                                         if (amountOfDataWrittenThisRoundAgg > 0)
-                                            derivedTypePackedSourceBuffer = (char *)H5MM_malloc(amountOfDataWrittenThisRoundAgg * sizeof(char));
+                                            derivedTypePackedSourceBuffer = (char *)H5MM_malloc((unsigned long)amountOfDataWrittenThisRoundAgg * sizeof(char));
                                         else
                                             derivedTypePackedSourceBuffer = NULL;
                                     }
@@ -7204,7 +7201,7 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
     printf("Rank %d - sizeof(FDSourceBufferState_CA) is %d - make sure is 32 for 32-byte memalign optimal\n",myrank,sizeof(FDSourceBufferState_CA));
 #endif
 
-     FDSourceBufferState_CA *currentFDSourceBufferState = (FDSourceBufferState_CA *) H5MM_malloc(naggs * sizeof(FDSourceBufferState_CA));
+     FDSourceBufferState_CA *currentFDSourceBufferState = (FDSourceBufferState_CA *) H5MM_malloc((unsigned long)naggs * sizeof(FDSourceBufferState_CA));
      for (i=0;i<naggs;i++) {
          /* initialize based on the bufType to indicate that it is unset.
          */
@@ -7283,17 +7280,17 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
      /* Data structures to track what data this compute needs to receive from whom.
      * For lustre they will all need another dimension for the file domain.
      */
-     int *sourceAggsForMyData = (int *) H5MM_malloc(naggs * sizeof(int));
-     ADIO_Offset_CA *sourceAggsForMyDataFDStart = (ADIO_Offset_CA *)H5MM_malloc(naggs * sizeof(ADIO_Offset_CA));
-     ADIO_Offset_CA *sourceAggsForMyDataFDEnd = (ADIO_Offset_CA *)H5MM_malloc(naggs * sizeof(ADIO_Offset_CA));
+     int *sourceAggsForMyData = (int *) H5MM_malloc((unsigned long)naggs * sizeof(int));
+     ADIO_Offset_CA *sourceAggsForMyDataFDStart = (ADIO_Offset_CA *)H5MM_malloc((unsigned long)naggs * sizeof(ADIO_Offset_CA));
+     ADIO_Offset_CA *sourceAggsForMyDataFDEnd = (ADIO_Offset_CA *)H5MM_malloc((unsigned long)naggs * sizeof(ADIO_Offset_CA));
      int numSourceAggs = 0;
 
      /* This data structure holds the beginning offset and len list index for the range to be read
      * coresponding to the round and source agg. Initialize to -1 to denote being unset.
      */
-     int **sourceAggsForMyDataFirstOffLenIndex = (int **) H5MM_malloc(numberOfRounds * sizeof(int *));
+     int **sourceAggsForMyDataFirstOffLenIndex = (int **) H5MM_malloc((unsigned long)numberOfRounds * sizeof(int *));
      for (i = 0; i < numberOfRounds; i++) {
-         sourceAggsForMyDataFirstOffLenIndex[i] = (int *) H5MM_malloc(naggs * sizeof(int));
+         sourceAggsForMyDataFirstOffLenIndex[i] = (int *) H5MM_malloc((unsigned long)naggs * sizeof(int));
          for (j = 0; j < naggs; j++)
              sourceAggsForMyDataFirstOffLenIndex[i][j] = -1;
      }
@@ -7301,9 +7298,9 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
      /* This data structure holds the ending offset and len list index for the range to be read
      * coresponding to the round and source agg.
      */
-     int **sourceAggsForMyDataLastOffLenIndex = (int **) H5MM_malloc(numberOfRounds * sizeof(int *));
+     int **sourceAggsForMyDataLastOffLenIndex = (int **) H5MM_malloc((unsigned long)numberOfRounds * sizeof(int *));
      for (i = 0; i < numberOfRounds; i++)
-         sourceAggsForMyDataLastOffLenIndex[i] = (int *) H5MM_malloc(naggs * sizeof(int));
+         sourceAggsForMyDataLastOffLenIndex[i] = (int *) H5MM_malloc((unsigned long)naggs * sizeof(int));
 
 #ifdef onesidedtrace
     printf("Rank %d - NumberOfRounds is %d\n",myrank,numberOfRounds);
@@ -7334,7 +7331,7 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
 
      /* This data structure tracks what source aggs need to be read to on what rounds.
      */
-     int *sourceAggsForMyDataCurrentRoundIter = (int *) H5MM_malloc(naggs * sizeof(int));
+     int *sourceAggsForMyDataCurrentRoundIter = (int *) H5MM_malloc((unsigned long)naggs * sizeof(int));
      for (i = 0; i < naggs; i++)
          sourceAggsForMyDataCurrentRoundIter[i] = 0;
 
@@ -7366,10 +7363,10 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
 
                      while (sourceBlockTotal < len_list[blockIter - 1]) {
                          numNonContigSourceChunks++;
-                         sourceBlockTotal += (flatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset);
+                         sourceBlockTotal += (long)(flatBuf->blocklens[currentFlatBufIndice] - currentIndiceOffset);
                          lastIndiceUsed = currentFlatBufIndice;
                          currentFlatBufIndice++;
-                         if (currentFlatBufIndice == flatBuf->count) {
+                         if (currentFlatBufIndice == (int)flatBuf->count) {
                              currentFlatBufIndice = 0;
                              currentDataTypeExtent++;
                          }
@@ -7379,9 +7376,9 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
                          currentFlatBufIndice--;
                          if (currentFlatBufIndice < 0) {
                              currentDataTypeExtent--;
-                             currentFlatBufIndice = flatBuf->count - 1;
+                             currentFlatBufIndice = (int)flatBuf->count - 1;
                          }
-                         currentIndiceOffset = len_list[blockIter - 1] - (sourceBlockTotal - flatBuf->blocklens[lastIndiceUsed]);
+                         currentIndiceOffset = len_list[blockIter - 1] - (sourceBlockTotal - (long)flatBuf->blocklens[lastIndiceUsed]);
                      } else
                      currentIndiceOffset = (ADIO_Offset_CA) 0;
                      maxNumContigOperations += (numNonContigSourceChunks + 2);
@@ -7405,7 +7402,7 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
                      lastNumNonContigSourceChunks++;
                      sourceBlockTotal += flatBuf->blocklens[tmpCurrentFlatBufIndice];
                      tmpCurrentFlatBufIndice++;
-                     if (tmpCurrentFlatBufIndice == flatBuf->count) {
+                     if (tmpCurrentFlatBufIndice == (int)flatBuf->count) {
                          tmpCurrentFlatBufIndice = 0;
                      }
                  }
@@ -7781,7 +7778,7 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
                         }
 
                         /* read currentRoundFDEnd bytes */
-                        MPI_File_read_at(ca_data->fh, currentRoundFDStart, read_buf, amountDataToReadThisRound, MPI_BYTE, &status);
+                        MPI_File_read_at(ca_data->fh, currentRoundFDStart, read_buf, (int)amountDataToReadThisRound, MPI_BYTE, &status);
 
 #ifdef onesidedtrace
                         printf("Rank %d - Finishing MPI_File_read_at (offset=%d,size=%d)\n", myrank, currentRoundFDStart, amountDataToReadThisRound);
@@ -7980,10 +7977,10 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
                                  /* Only allocate these arrays if we are using method 2 and only do it once for this round/source agg.
                                  */
                                  if (!allocatedDerivedTypeArrays) {
-                                     sourceAggBlockLengths = (int *) H5MM_malloc(maxNumContigOperations * sizeof(int));
-                                     sourceAggDisplacements = (MPI_Aint *) H5MM_malloc(maxNumContigOperations * sizeof(MPI_Aint));
-                                     recvBufferDisplacements = (MPI_Aint *) H5MM_malloc(maxNumContigOperations * sizeof(MPI_Aint));
-                                     sourceAggDataTypes = (MPI_Datatype *) H5MM_malloc(maxNumContigOperations * sizeof(MPI_Datatype));
+                                     sourceAggBlockLengths = (int *) H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(int));
+                                     sourceAggDisplacements = (MPI_Aint *) H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(MPI_Aint));
+                                     recvBufferDisplacements = (MPI_Aint *) H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(MPI_Aint));
+                                     sourceAggDataTypes = (MPI_Datatype *) H5MM_malloc((unsigned long)maxNumContigOperations * sizeof(MPI_Datatype));
                                      if (!bufTypeIsContig) {
                                          int k;
                                          for (k = sourceAggsForMyDataFirstOffLenIndex[roundIter][aggIter]; k <= sourceAggsForMyDataLastOffLenIndex[roundIter][aggIter]; k++)
@@ -8029,7 +8026,7 @@ void H5FD_mpio_ccio_osagg_read(CustomAgg_FH_Data ca_data,
                                  }
                                  else {
 
-                                     getSourceData = (char *) H5MM_malloc(bufferAmountToRecv * sizeof(char));
+                                     getSourceData = (char *) H5MM_malloc((unsigned long)bufferAmountToRecv * sizeof(char));
                                      MPI_Get(getSourceData, bufferAmountToRecv, MPI_BYTE, sourceAggsForMyData[aggIter], sourceDisplacementToUseThisRound, bufferAmountToRecv, MPI_BYTE, read_buf_window);
 
                                  }
@@ -8334,9 +8331,9 @@ void calc_file_domains(ADIO_Offset_CA *st_offsets, ADIO_Offset_CA *end_offsets,
     if (fd_size < min_fd_size)
     fd_size = min_fd_size;
     */
-    fd_size        = (ADIO_Offset_CA *) H5MM_malloc(nprocs_for_coll * sizeof(ADIO_Offset_CA));
-    *fd_start_ptr  = (ADIO_Offset_CA *) H5MM_malloc(nprocs_for_coll * sizeof(ADIO_Offset_CA));
-    *fd_end_ptr    = (ADIO_Offset_CA *) H5MM_malloc(nprocs_for_coll * sizeof(ADIO_Offset_CA));
+    fd_size        = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs_for_coll * sizeof(ADIO_Offset_CA));
+    *fd_start_ptr  = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs_for_coll * sizeof(ADIO_Offset_CA));
+    *fd_end_ptr    = (ADIO_Offset_CA *) H5MM_malloc((unsigned long)nprocs_for_coll * sizeof(ADIO_Offset_CA));
     fd_start       = *fd_start_ptr;
     fd_end         = *fd_end_ptr;
 
@@ -8366,9 +8363,9 @@ void calc_file_domains(ADIO_Offset_CA *st_offsets, ADIO_Offset_CA *end_offsets,
      */
 
     ADIO_Offset_CA n_gpfs_blk  = fd_gpfs_range / blksize;
-    ADIO_Offset_CA nb_cn_small = n_gpfs_blk/naggs;
-    ADIO_Offset_CA naggs_large = n_gpfs_blk - naggs * (n_gpfs_blk/naggs);
-    ADIO_Offset_CA naggs_small = naggs - naggs_large;
+    ADIO_Offset_CA nb_cn_small = n_gpfs_blk/(long)naggs;
+    ADIO_Offset_CA naggs_large = n_gpfs_blk - naggs * (n_gpfs_blk/(long)naggs);
+    ADIO_Offset_CA naggs_small = (long)naggs - naggs_large;
 
     /* simple allocation of file domins to each aggregator */
     for (i=0; i<naggs; i++) {
@@ -8436,9 +8433,9 @@ void *IO_Thread_Func(void *vptr_args) {
 #endif
     if (args->size > 0) {
         if (args->io_kind == READ_CA) {
-            args->error_code = MPI_File_read_at(args->fh, args->offset, args->buf, args->size, MPI_BYTE, &(args->error_code));
+            args->error_code = MPI_File_read_at(args->fh, args->offset, args->buf, (int)args->size, MPI_BYTE, &(args->error_code));
         } else {
-            args->error_code = MPI_File_write_at(args->fh, args->offset, args->buf, args->size, MPI_BYTE, &(args->error_code));
+            args->error_code = MPI_File_write_at(args->fh, args->offset, args->buf, (int)args->size, MPI_BYTE, &(args->error_code));
         }
 #ifdef onesidedtrace
         int eclass, len;
