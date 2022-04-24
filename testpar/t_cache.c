@@ -27,7 +27,7 @@
 #include "H5Fpkg.h"
 #include "H5Iprivate.h"
 #include "H5MFprivate.h"
-
+#include "H5CXprivate.h"
 
 #define BASE_ADDR               (haddr_t)1024
 

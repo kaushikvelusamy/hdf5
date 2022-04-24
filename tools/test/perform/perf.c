@@ -22,6 +22,7 @@
 
 #include "hdf5.h"
 #include "H5private.h"
+#include "h5test.h"
 
 #ifdef H5_HAVE_PARALLEL
 
