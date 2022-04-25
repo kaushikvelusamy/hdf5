@@ -4687,7 +4687,7 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
         startTimeTopo = MPI_Wtime();
 #endif
 
-        topology_aware_ranklist ( fileFlatBuf->blocklens, fileFlatBuf->indices, fileFlatBuf->count, &(ca_data->ranklist[0]), ca_data->cb_buffer_size, ca_data->cb_nodes, ca_data->ppn, ca_data->pps, 0, ca_data->comm, ca_data->topo_cb_select, (int)(ca_data->fslayout == GPFS) );
+        topology_aware_ranklist ( (int64_t*)fileFlatBuf->blocklens, (int64_t*)fileFlatBuf->indices, (int)fileFlatBuf->count, &(ca_data->ranklist[0]), (int64_t)ca_data->cb_buffer_size, (int64_t)ca_data->cb_nodes, ca_data->ppn, ca_data->pps, 0, ca_data->comm, ca_data->topo_cb_select, (int)(ca_data->fslayout == GPFS) );
 
         /* Only populating ranklist when necessary */
         ca_data->ranklist_populated = 1;
@@ -4955,8 +4955,7 @@ void H5FD_mpio_ccio_write_one_sided(CustomAgg_FH_Data ca_data, const void *buf, 
     startTimeTopo = MPI_Wtime();
 #endif
 
-        topology_aware_ranklist ( fileFlatBuf->blocklens, fileFlatBuf->indices, fileFlatBuf->count, &(ca_data->ranklist[0]), ca_data->cb_buffer_size, ca_data->cb_nodes, ca_data->ppn, ca_data->pps, 0, ca_data->comm, ca_data->topo_cb_select, (int)(ca_data->fslayout == GPFS) );
-
+        topology_aware_ranklist ( (int64_t*)fileFlatBuf->blocklens, (int64_t*)fileFlatBuf->indices, (int)fileFlatBuf->count, &(ca_data->ranklist[0]), (int64_t)ca_data->cb_buffer_size, (int64_t)ca_data->cb_nodes, ca_data->ppn, ca_data->pps, 0, ca_data->comm, ca_data->topo_cb_select, (int)(ca_data->fslayout == GPFS) );
         /* Only populating ranklist when necessary */
         ca_data->ranklist_populated = 1;
 

@@ -125,11 +125,11 @@ enum AGGSelect{DEFAULT, DATA, SPREAD, STRIDED, RANDOM};
  *
  *-------------------------------------------------------------------------
  */
-static int CountProcsPerNode(int numTasks, int rank, MPI_Comm comm)
+static int CountProcsPerNode(int rank, MPI_Comm comm)
 {
     char localhost[MAX_STR];
     char hostname0[MAX_STR];
-    static int firstPass = true;
+    //static int firstPass = true;
     unsigned count;
     unsigned flag;
     int rc;
@@ -166,7 +166,7 @@ static int CountProcsPerNode(int numTasks, int rank, MPI_Comm comm)
  *
  *-------------------------------------------------------------------------
  */
-int64_t network_bandwidth () {
+int network_bandwidth () {
     return NETWORK_BANDWIDTH;
 }
 
@@ -179,7 +179,7 @@ int64_t network_bandwidth () {
  *
  *-------------------------------------------------------------------------
  */
-int64_t network_latency () {
+int network_latency () {
     return NETWORK_LATENCY;
 }
 
@@ -455,15 +455,15 @@ int topology_aware_list_serial ( int64_t* tally, int64_t nb_aggr, int* agg_list,
     int64_t *data_distribution;
     double base_cost_penalty = 1;
     int trim_thresh = 1;
-    int min_stride;
+    //int min_stride;
     int *world_ranks;
     cost aggr_cost, min_cost;
 
     latency           = network_latency (); /*  */
     bandwidth         = network_bandwidth ();
-    data_distribution = (int64_t *) malloc (nprocs * sizeof(int64_t));
-    world_ranks       = (int *) malloc (nprocs * sizeof(int));
-    min_stride        = nprocs / nb_aggr;
+    data_distribution = (int64_t *) malloc ((unsigned long)nprocs * sizeof(int64_t));
+    world_ranks       = (int *) malloc ((unsigned long)nprocs * sizeof(int));
+    //min_stride        = nprocs / nb_aggr;
 
     /* Loop through the aggregators (this is the `serial` part) */
     for (agg_ind=0; agg_ind<nb_aggr; agg_ind++ ) {
@@ -600,29 +600,29 @@ int get_cb_config_list ( int64_t* data_lens, int64_t* offsets, int data_len, cha
     MPI_Comm_rank ( comm, &rank );
     MPI_Comm_size ( comm, &nprocs );
     MPI_Get_processor_name( name, &resultlen );
-    int ppn = CountProcsPerNode(nprocs, rank, comm);
+    int ppn = CountProcsPerNode(rank, comm);
     int pps = ppn;
 
     /* Tally data quantities associated with each aggregator */
-    data_to_send_per_aggr = (int64_t *) calloc (nb_aggr, sizeof (int64_t));
+    data_to_send_per_aggr = (int64_t *) calloc ((unsigned long)nb_aggr, sizeof (int64_t));
     for ( r = 0; r < data_len; r++ ) {
         add_chunk ( data_lens[r], offsets[r], buffer_size, nb_aggr, data_to_send_per_aggr );
     }
 
     /* Generate topology-aware list of aggregators */
-    agg_list = (int *) calloc (nprocs, sizeof (int));
+    agg_list = (int *) calloc ((unsigned long)nprocs, sizeof (int));
     topology_aware_list_serial( data_to_send_per_aggr, nb_aggr, agg_list, ppn, pps, comm );
 
     /* Reverse the order of the agg list..? */
     if ( cb_reverse && (strcmp(cb_reverse,"yes") == 0) ) {
-      for (i=0, r=nb_aggr-1; i<r; i++,r--) {
+      for (i=0, r=(int)nb_aggr-1; i<r; i++,r--) {
         int tmp0 = agg_list[i];
         agg_list[i] = agg_list[r];
         agg_list[r] = tmp0;
       }
     }
 
-    for ( r = 0; r < nb_aggr; r++ ) {
+    for ( r = 0; r < (int)nb_aggr; r++ ) {
         if (rank==0) printf("agg_list[%d] = %d\n",r,agg_list[r]);
         strcpy(name_buf, name);
         MPI_Bcast ( name_buf, MPI_MAX_PROCESSOR_NAME, MPI_CHAR, agg_list[r], comm );
@@ -649,7 +649,7 @@ int get_cb_config_list ( int64_t* data_lens, int64_t* offsets, int data_len, cha
  */
 int get_ranklist_spread ( int64_t nb_aggr, int* agg_list, int ppn, int pps, MPI_Comm comm )
 {
-    int i, r, agg_ind, distance, nprocs, rank, stride;
+    int r, agg_ind, distance, nprocs, rank, stride;
     cost aggr_cost, max_cost;
 
     MPI_Comm_rank ( comm, &rank );
@@ -718,7 +718,7 @@ int get_ranklist_random ( int64_t nb_aggr, int* agg_list, MPI_Comm comm )
 
     /* Use rank-0 to crate a random agg placement */
     if (rank == 0) {
-        srand(time(NULL));   /* Initialization, should only be called once. */
+        srand((unsigned int)time(NULL));   /* Initialization, should only be called once. */
         for (agg_ind=0; agg_ind<nb_aggr; agg_ind++ ) {
             while (1) {
                 good = 1;
@@ -735,7 +735,7 @@ int get_ranklist_random ( int64_t nb_aggr, int* agg_list, MPI_Comm comm )
         }
     }
     /* Bcast random list to other ranks */
-    MPI_Bcast(&agg_list[0], nb_aggr, MPI_INT, 0, comm);
+    MPI_Bcast(&agg_list[0], (int)nb_aggr, MPI_INT, 0, comm);
     return 0;
 }
 
@@ -808,7 +808,7 @@ int topology_aware_ranklist ( int64_t* data_lens, int64_t* offsets, int data_len
         case DATA :
         {
             /* Tally data quantities associated with each aggregator */
-            data_to_send_per_aggr = (int64_t *) calloc (nb_aggr, sizeof (int64_t));
+            data_to_send_per_aggr = (int64_t *) calloc ((unsigned long)nb_aggr, sizeof (int64_t));
 
             if (fd_mapping==1) { /* GPFS-style mapping */
 
