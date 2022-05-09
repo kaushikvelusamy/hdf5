@@ -642,7 +642,6 @@ H5FD__mpio_term(void)
 herr_t
 H5Pset_fapl_mpio(hid_t fapl_id, MPI_Comm comm, MPI_Info info)
 {
-    H5FD_mpio_fapl_t fa;
     H5P_genplist_t *plist; /* Property list pointer */
     herr_t ret_value;
 
@@ -664,7 +663,7 @@ H5Pset_fapl_mpio(hid_t fapl_id, MPI_Comm comm, MPI_Info info)
         HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't set MPI info object")
 
     /* duplication is done during driver setting. */
-    ret_value = H5P_set_driver(plist, H5FD_MPIO, &fa, NULL);
+    ret_value = H5P_set_driver(plist, H5FD_MPIO, NULL, NULL);
 
 done:
     FUNC_LEAVE_API(ret_value)
@@ -3345,8 +3344,10 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         curflatbuf->count = 0;
         curflatbuf->size = 0;
         curflatbuf->extent = 0;
+
 #ifdef H5FDmpio_DEBUG
-        if (H5FD_mpio_Debug[(int)'t']) {
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
             fprintf(stdout,"space_sel_type == H5S_SEL_NONE for flatbuf - setting everything to 0\n");
             fflush(stdout);
         }
@@ -3373,8 +3374,10 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         curflatbuf->size = flatBufSize;
 
 #ifdef H5FDmpio_DEBUG
-        if (H5FD_mpio_Debug[(int)'t']) {
-            fprintf(stdout,"space_sel_type == H5S_SEL_ALL for flatbuf - curflatbuf->size is %ld curflatbuf->indices[0] is %ldcurflatbuf->blocklens[0] is %ld curflatbuf->extent is %ld\n",curflatbuf->size,curflatbuf->indices[0],curflatbuf->blocklens[0],curflatbuf->extent);
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
+            fprintf(stdout,"space_sel_type == H5S_SEL_ALL for flatbuf - curflatbuf->size is %ld curflatbuf->indices[0] is %ldcurflatbuf->blocklens[0] is %ld curflatbuf->extent is %ld\n",
+                            curflatbuf->size,curflatbuf->indices[0],curflatbuf->blocklens[0],curflatbuf->extent);
             fflush(stdout);
         }
 #endif
@@ -3415,13 +3418,16 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         curflatbuf->size = flatBufSize;
 
 #ifdef H5FDmpio_DEBUG
-        if (H5FD_mpio_Debug[(int)'t']) {
-            fprintf(stdout,"space_sel_type == H5S_SEL_POINTS called H5S__point_get_seq_list for file flatbuf - curflatbuf->count is %ld numSpaceDims is %d curflatbuf->extent is %ld curflatbuf->size is %ld returned sel_nseq %ld sel_nelem %ld offset/len pairs for curflatbuf->count entries are:\n",curflatbuf->count,numSpaceDims,curflatbuf->extent,curflatbuf->size,sel_nseq,sel_nelem);
-            for (int j=0;j<curflatbuf->count;j++)
-                fprintf(stdout, " %d offset: %ld len: %ld\n",j,curflatbuf->indices[j],curflatbuf->blocklens[j]);
-            fflush(stdout);
-        }
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
+        fprintf(stdout,"space_sel_type == H5S_SEL_POINTS called H5S__point_get_seq_list for file flatbuf - curflatbuf->count is %ld numSpaceDims is %d curflatbuf->extent is %ld curflatbuf->size is %ld returned sel_nseq %ld sel_nelem %ld offset/len pairs for curflatbuf->count entries are:\n",
+                    curflatbuf->count,numSpaceDims,curflatbuf->extent,curflatbuf->size,sel_nseq,sel_nelem);
+        for (int j=0;j<curflatbuf->count;j++)
+            fprintf(stdout, " %d offset: %ld len: %ld\n",j,curflatbuf->indices[j],curflatbuf->blocklens[j]);
+    }
+    fflush(stdout);    
 #endif
+
     }
     else if (space_sel_type == H5S_SEL_HYPERSLABS) {
 
@@ -3450,19 +3456,22 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
             numSelDims = numSpaceDims;
 
 #ifdef H5FDmpio_DEBUG
-        if (H5FD_mpio_Debug[(int)'t']) {
-            fprintf(stdout,"space_sel_type == H5S_SEL_HYPERSLABS computing numBlockEntries and numElements\n");
-            fflush(stdout);
-        }
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
+        fprintf(stdout,"space_sel_type == H5S_SEL_HYPERSLABS computing numBlockEntries and numElements\n");
+    }
+    fflush(stdout);  
 #endif
 
         numBlockEntries = 1, numElements = 1;
         for(int u = 0; u < numSelDims; u++) {
+
 #ifdef H5FDmpio_DEBUG
-            if (H5FD_mpio_Debug[(int)'t']) {
-                fprintf(stdout,"iter %d diminfo[u].count is %ld and diminfo[u].block is %ld\n",u,diminfo[u].count,diminfo[u].block);
-                fflush(stdout);
-            }
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
+        fprintf(stdout,"iter %d diminfo[u].count is %ld and diminfo[u].block is %ld\n",u,diminfo[u].count,diminfo[u].block);
+    }
+    fflush(stdout);
 #endif
             if (u < (numSelDims-1)) {
                 numBlockEntries *= (diminfo[u].count * diminfo[u].block);
@@ -3479,10 +3488,11 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         curflatbuf->count = numBlockEntries;
 
 #ifdef H5FDmpio_DEBUG
-        if (H5FD_mpio_Debug[(int)'t']) {
-            fprintf(stdout,"calling H5S__hyper_get_seq_list for file flatbuf - numSelDims is %d numElements is %ld curflatbuf->count is %ld curflatbuf->extent is %ld\n",numSelDims,numElements, curflatbuf->count, curflatbuf->extent);
-            fflush(stdout);
-        }
+    if (H5FD_mpio_debug_t_flag) {
+    fprintf(stdout,"calling H5S__hyper_get_seq_list for file flatbuf - numSelDims is %d numElements is %ld curflatbuf->count is %ld curflatbuf->extent is %ld\n",
+            numSelDims,numElements, curflatbuf->count, curflatbuf->extent);
+    }
+    fflush(stdout);
 #endif
 
         if(H5S__hyper_get_seq_list(space_stype,null_flags,sel_iter,numElements,numElements,&sel_nseq,&sel_nelem,curflatbuf->indices,curflatbuf->blocklens) < 0)
@@ -3498,12 +3508,12 @@ H5FD_mpio_setup_flatbuf( H5S_sel_type space_sel_type, H5S_flatbuf_t *curflatbuf,
         curflatbuf->size = flatBufSize;
 
 #ifdef H5FDmpio_DEBUG
-        if (H5FD_mpio_Debug[(int)'t']) {
-            fprintf(stdout,"called H5S__hyper_get_seq_list for file flatbuf - numSelDims is %d numElements is %ld curflatbuf->count is %ld curflatbuf->extent is %ld curflatbuf->size is %ld returned sel_nseq %ld sel_nelem %ld offset/len pairs for curflatbuf->count entries are:\n",numSelDims,numElements, curflatbuf->count,curflatbuf->extent,curflatbuf->size,sel_nseq,sel_nelem);
-            for (int j=0;j<curflatbuf->count;j++)
-                fprintf(stdout, " %d offset: %ld len: %ld\n",j,curflatbuf->indices[j],curflatbuf->blocklens[j]);
-            fflush(stdout);
-        }
+    if (H5FD_mpio_debug_t_flag) {
+        fprintf(stdout,"called H5S__hyper_get_seq_list for file flatbuf - numSelDims is %d numElements is %ld curflatbuf->count is %ld curflatbuf->extent is %ld curflatbuf->size is %ld returned sel_nseq %ld sel_nelem %ld offset/len pairs for curflatbuf->count entries are:\n",numSelDims,numElements, curflatbuf->count,curflatbuf->extent,curflatbuf->size,sel_nseq,sel_nelem);
+        for (int j=0;j<curflatbuf->count;j++)
+            fprintf(stdout, " %d offset: %ld len: %ld\n",j,curflatbuf->indices[j],curflatbuf->blocklens[j]);
+    }
+    fflush(stdout);
 #endif
 
     }
@@ -3995,8 +4005,11 @@ H5FD__mpio_fapl_copy(const void *_old_fa)
     FUNC_ENTER_STATIC
 
 #ifdef H5FDmpio_DEBUG
-if(H5FD_mpio_Debug[(int)'t'])
-    HDfprintf(stderr, "%s: entering\n", FUNC);
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
+        HDfprintf(stderr, "%s: entering H5FD__mpio_fapl_copy \n");
+    }
+    fflush(stdout);
 #endif
 
     if(NULL == (new_fa = (H5FD_mpio_fapl_t *)H5MM_malloc(sizeof(H5FD_mpio_fapl_t))))
@@ -4019,12 +4032,15 @@ done:
 	    H5MM_xfree(new_fa);
 
 #ifdef H5FDmpio_DEBUG
-if(H5FD_mpio_Debug[(int)'t'])
-    HDfprintf(stderr, "%s: leaving\n", FUNC);
+    if (H5FD_mpio_debug_t_flag) {
+        HDfprintf(stderr, "%s: leaving H5FD__mpio_fapl_copy \n");
+    }
+    fflush(stdout);
 #endif
 
     FUNC_LEAVE_NOAPI(ret_value)
-} /* end H5FD__mpio_fapl_copy() */
+} 
+/* end H5FD__mpio_fapl_copy() */
 
 /*-------------------------------------------------------------------------
  * Function:	H5FD__mpio_fapl_free
@@ -4048,8 +4064,11 @@ H5FD__mpio_fapl_free(void *_fa)
     FUNC_ENTER_STATIC
 
 #ifdef H5FDmpio_DEBUG
-if(H5FD_mpio_Debug[(int)'t'])
-    HDfprintf(stderr, "%s: Entering\n", FUNC);
+    hbool_t H5FD_mpio_debug_t_flag = H5FD_mpio_debug_flags_s[(int)'t'];
+    if (H5FD_mpio_debug_t_flag) {
+        HDfprintf(stderr, "%s: Entering H5FD__mpio_fapl_free\n");
+    }
+    fflush(stdout);
 #endif
 
     /* Sanity checks */
@@ -4061,8 +4080,10 @@ if(H5FD_mpio_Debug[(int)'t'])
     H5MM_xfree(fa);
 
 #ifdef H5FDmpio_DEBUG
-if(H5FD_mpio_Debug[(int)'t'])
-    HDfprintf(stderr, "%s: leaving\n", FUNC);
+    if (H5FD_mpio_debug_t_flag) {
+        HDfprintf(stderr, "%s: leaving H5FD__mpio_fapl_free\n");
+    }
+    fflush(stdout);
 #endif
 
     FUNC_LEAVE_NOAPI(ret_value)
