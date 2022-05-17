@@ -1477,15 +1477,15 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5FD__mpio_read(H5FD_t *_file, H5FD_mem_t H5_ATTR_UNUSED type, 
-                hid_t H5_ATTR_UNUSED dxpl_id, haddr_t addr, size_t size, void *buf /*out*/)
+H5FD__mpio_read(H5FD_t *_file, H5FD_mem_t H5_ATTR_UNUSED type, hid_t H5_ATTR_UNUSED dxpl_id, haddr_t addr, 
+		size_t size, void *buf /*out*/)
 {
     H5FD_mpio_t *file = (H5FD_mpio_t *)_file;
     MPI_Offset   mpi_off;
     MPI_Status   mpi_stat;            /* Status from I/O operation */
     MPI_Datatype buf_type = MPI_BYTE; /* MPI description of the selection in memory */
     int          size_i;              /* Integer copy of 'size' to read */
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
     MPI_Count bytes_read = 0; /* Number of bytes read in */
     MPI_Count type_size;      /* MPI datatype used for I/O's size */
     MPI_Count io_size;        /* Actual number of bytes requested */
@@ -1658,7 +1658,7 @@ H5FD__mpio_read(H5FD_t *_file, H5FD_mem_t H5_ATTR_UNUSED type,
     /* Only retrieve bytes read if this rank _actually_ participated in I/O */
     if (!rank0_bcast || (rank0_bcast && file->mpi_rank == 0)) {
         /* How many bytes were actually read? */
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
         if (MPI_SUCCESS != (mpi_code = MPI_Get_elements_x(&mpi_stat, buf_type, &bytes_read))) {
 #else
         if (MPI_SUCCESS != (mpi_code = MPI_Get_elements(&mpi_stat, MPI_BYTE, &bytes_read))) {
@@ -1683,7 +1683,7 @@ H5FD__mpio_read(H5FD_t *_file, H5FD_mem_t H5_ATTR_UNUSED type,
      *          of the data.  (QAK - 2019/1/2)
      */
     if (rank0_bcast)
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
         if (MPI_SUCCESS != MPI_Bcast(&bytes_read, 1, MPI_COUNT, 0, file->comm))
 #else
         if (MPI_SUCCESS != MPI_Bcast(&bytes_read, 1, MPI_INT, 0, file->comm))
@@ -1691,7 +1691,7 @@ H5FD__mpio_read(H5FD_t *_file, H5FD_mem_t H5_ATTR_UNUSED type,
             HMPI_GOTO_ERROR(FAIL, "MPI_Bcast failed", 0)
 
             /* Get the type's size */
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
     if (MPI_SUCCESS != (mpi_code = MPI_Type_size_x(buf_type, &type_size)))
 #else
     if (MPI_SUCCESS != (mpi_code = MPI_Type_size(buf_type, &type_size)))
@@ -1751,14 +1751,14 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5FD__mpio_write(H5FD_t *_file, H5FD_mem_t type, hid_t H5_ATTR_UNUSED dxpl_id, 
-		        haddr_t addr, size_t size, const void *buf)
+H5FD__mpio_write(H5FD_t *_file, H5FD_mem_t type, hid_t H5_ATTR_UNUSED dxpl_id, haddr_t addr, size_t size,
+                 const void *buf)
 {
     H5FD_mpio_t *file = (H5FD_mpio_t *)_file;
     MPI_Offset   mpi_off;
     MPI_Status   mpi_stat;            /* Status from I/O operation */
     MPI_Datatype buf_type = MPI_BYTE; /* MPI description of the selection in memory */
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
     MPI_Count bytes_written;
     MPI_Count type_size; /* MPI datatype used for I/O's size */
     MPI_Count io_size;   /* Actual number of bytes requested */
@@ -1906,7 +1906,7 @@ H5FD__mpio_write(H5FD_t *_file, H5FD_mem_t type, hid_t H5_ATTR_UNUSED dxpl_id,
     } /* end else */
 
     /* How many bytes were actually written? */
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
     if (MPI_SUCCESS != (mpi_code = MPI_Get_elements_x(&mpi_stat, buf_type, &bytes_written)))
 #else
     if (MPI_SUCCESS != (mpi_code = MPI_Get_elements(&mpi_stat, MPI_BYTE, &bytes_written)))
@@ -1914,7 +1914,7 @@ H5FD__mpio_write(H5FD_t *_file, H5FD_mem_t type, hid_t H5_ATTR_UNUSED dxpl_id,
         HMPI_GOTO_ERROR(FAIL, "MPI_Get_elements failed", mpi_code)
 
         /* Get the type's size */
-#if MPI_VERSION >= 3
+#if H5_CHECK_MPI_VERSION(3, 0)
     if (MPI_SUCCESS != (mpi_code = MPI_Type_size_x(buf_type, &type_size)))
 #else
     if (MPI_SUCCESS != (mpi_code = MPI_Type_size(buf_type, &type_size)))
