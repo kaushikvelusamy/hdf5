@@ -318,9 +318,9 @@ typedef struct H5S_flatbuf_t {
     hsize_t size; /* number of bytes of block data */
 } H5S_flatbuf_t;
 
-H5_DLL herr_t H5S__hyper_get_seq_list(const H5S_t *space, unsigned H5_ATTR_UNUSED flags, H5S_sel_iter_t *iter,
-    size_t maxseq, size_t maxelem, size_t *nseq, size_t *nelem,
-    hsize_t *off, size_t *len);
+H5_DLL herr_t H5S__hyper_get_seq_list(const H5S_t *space, unsigned H5_ATTR_UNUSED flags, 
+                                      H5S_sel_iter_t *iter, size_t maxseq, size_t maxelem, 
+                                      size_t *nseq, size_t *nelem, hsize_t *off, size_t *len);
 H5_DLL herr_t H5S__all_get_seq_list(const H5S_t *space, unsigned flags,
     H5S_sel_iter_t *iter, size_t maxseq, size_t maxbytes,
     size_t *nseq, size_t *nbytes, hsize_t *off, size_t *len);
@@ -328,9 +328,7 @@ H5_DLL herr_t H5S__point_get_seq_list(const H5S_t *space, unsigned flags, H5S_se
     size_t maxseq, size_t maxelem, size_t *nseq, size_t *nelem,
     hsize_t *off, size_t *len);
 
-//H5_DLL herr_t H5S_mpio_return_space_rank_and_extent(const H5S_t *space, unsigned *rank, hsize_t *extent);
 H5_DLL herr_t H5S_mpio_return_space_rank_and_extent(const H5S_t *space, int *rank, hsize_t *extent);
-
 H5_DLL herr_t H5S_mpio_return_space_extent_and_select_type(H5S_t *space, hbool_t *is_permuted, 
     hbool_t *is_regular, H5S_class_t *space_extent_type, H5S_sel_type *space_sel_type);
 H5_DLL herr_t H5FD_mpi_comm_info_dup(MPI_Comm comm, MPI_Info info,

@@ -228,6 +228,7 @@ const H5S_select_class_t H5S_sel_hyper[1] = {{
 
     /* Methods on selection */
     H5S__hyper_copy,
+    H5S__hyper_get_seq_list,
     H5S__hyper_release,
     H5S__hyper_is_valid,
     H5S__hyper_serial_size,
@@ -9594,7 +9595,6 @@ H5S__set_regular_hyperslab(H5S_t *space, const hsize_t start[], const hsize_t *a
     HDassert(opt_stride);
     HDassert(opt_count);
     HDassert(opt_block);
-
     /* If we are setting a new selection, remove current selection first */
     if (H5S_SELECT_RELEASE(space) < 0)
         HGOTO_ERROR(H5E_DATASPACE, H5E_CANTDELETE, FAIL, "can't release selection")

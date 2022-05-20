@@ -41,7 +41,7 @@
 #define inline
 #endif
 
-/* optypes for ADIO Requests */
+/* prototypes for ADIO Requests */
 #define READ_CA                26
 #define WRITE_CA               27
 /*******************************/
