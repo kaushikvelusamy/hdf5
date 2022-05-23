@@ -272,6 +272,7 @@ H5FD_mpi_haddr_to_MPIOff(haddr_t addr, MPI_Offset *mpi_off /*out*/)
  * Modifications:
  *-------------------------------------------------------------------------
  */
+/*
 herr_t
 H5FD_mpi_comm_info_dup(MPI_Comm comm, MPI_Info info, MPI_Comm *comm_new, MPI_Info *info_new)
 {
@@ -282,35 +283,35 @@ H5FD_mpi_comm_info_dup(MPI_Comm comm, MPI_Info info, MPI_Comm *comm_new, MPI_Inf
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    /* Check arguments */
+    // Check arguments 
     if (MPI_COMM_NULL == comm)
     HGOTO_ERROR(H5E_INTERNAL, H5E_BADVALUE, FAIL, "not a valid argument")
     if (!comm_new || !info_new)
     HGOTO_ERROR(H5E_INTERNAL, H5E_BADVALUE, FAIL, "bad pointers")
 
-    /* Dup them.  Using temporary variables for error recovery cleanup. */
+    // Dup them.  Using temporary variables for error recovery cleanup.
     if (MPI_SUCCESS != (mpi_code=MPI_Comm_dup(comm, &comm_dup)))
     HMPI_GOTO_ERROR(FAIL, "MPI_Comm_dup failed", mpi_code)
     if (MPI_INFO_NULL != info){
     if (MPI_SUCCESS != (mpi_code=MPI_Info_dup(info, &info_dup)))
         HMPI_GOTO_ERROR(FAIL, "MPI_Info_dup failed", mpi_code)
     }else{
-    /* No dup, just copy it. */
+    // No dup, just copy it. 
     info_dup = info;
     }
 
-    /* Set MPI_ERRORS_RETURN on comm_dup so that MPI failures are not fatal, 
-       and return codes can be checked and handled. May 23, 2017 FTW */
+    // Set MPI_ERRORS_RETURN on comm_dup so that MPI failures are not fatal, 
+    //   and return codes can be checked and handled. May 23, 2017 FTW
     if (MPI_SUCCESS != (mpi_code = MPI_Comm_set_errhandler(comm_dup, MPI_ERRORS_RETURN)))
         HMPI_GOTO_ERROR(FAIL, "MPI_Errhandler_set failed", mpi_code)
  
-    /* copy them to the return arguments */
+    // copy them to the return arguments 
     *comm_new = comm_dup;
     *info_new = info_dup;
 
 done:
     if (FAIL == ret_value){
-    /* need to free anything created here */
+    // need to free anything created here 
     if (MPI_COMM_NULL != comm_dup)
         MPI_Comm_free(&comm_dup);
     if (MPI_INFO_NULL != info_dup)
@@ -319,6 +320,7 @@ done:
 
     FUNC_LEAVE_NOAPI(ret_value)
 }
+*/
 
 /*-------------------------------------------------------------------------
  * Function:    H5FD_mpi_comm_info_free
@@ -339,6 +341,7 @@ done:
  * Modifications:
  *-------------------------------------------------------------------------
  */
+/* 
 herr_t
 H5FD_mpi_comm_info_free(MPI_Comm *comm, MPI_Info *info)
 {
@@ -346,7 +349,7 @@ H5FD_mpi_comm_info_free(MPI_Comm *comm, MPI_Info *info)
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    /* Check arguments */
+    // Check arguments
     if (!comm || !info)
     HGOTO_ERROR(H5E_INTERNAL, H5E_BADVALUE, FAIL, "not a valid argument")
 
@@ -358,8 +361,7 @@ H5FD_mpi_comm_info_free(MPI_Comm *comm, MPI_Info *info)
 done:
     FUNC_LEAVE_NOAPI(ret_value)
 }
-
-
+*/
 #ifdef NOT_YET
 
 /*-------------------------------------------------------------------------

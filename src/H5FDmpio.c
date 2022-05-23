@@ -306,7 +306,7 @@ static herr_t H5FD__mpio_vector_build_types(
     hbool_t *buf_type_created, MPI_Datatype *file_type, hbool_t *file_type_created, char *unused);
 
 /* CCIO related functions */
-void *H5FD__mpio_fapl_get(H5FD_t *_file);
+static void *H5FD__mpio_fapl_get(H5FD_t *_file);
 static void *H5FD__mpio_fapl_copy(const void *_old_fa);
 static herr_t H5FD__mpio_fapl_free(void *_fa);
 static herr_t H5FD__mpio_read_selection(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, size_t count, 
@@ -3954,9 +3954,10 @@ done:
  *
  *-------------------------------------------------------------------------
  */
-void *
+static void *
 H5FD__mpio_fapl_get(H5FD_t *_file)
 {
+    H5P_genplist_t *plist;                /* Property list pointer */
     H5FD_mpio_t		*file = (H5FD_mpio_t*)_file;
     H5FD_mpio_fapl_t	*fa = NULL;
     void      *ret_value;       /* Return value */
@@ -3971,12 +3972,20 @@ H5FD__mpio_fapl_get(H5FD_t *_file)
     if(NULL == (fa = (H5FD_mpio_fapl_t *)H5MM_calloc(sizeof(H5FD_mpio_fapl_t))))
         HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, NULL, "memory allocation failed")
 
-    /* Duplicate communicator and Info object. */
+   /* Duplicate communicator and Info object. */
+   /* 
     if(FAIL == H5FD_mpi_comm_info_dup(file->comm, file->info, &fa->comm, &fa->info))
-	HGOTO_ERROR(H5E_INTERNAL, H5E_CANTCOPY, NULL, "Communicator/Info duplicate failed")
+	    HGOTO_ERROR(H5E_INTERNAL, H5E_CANTCOPY, NULL, "Communicator/Info duplicate failed")
+   */
+
+    /* Get the MPI communicator and info object from the property list */
+    if (H5P_get(plist, H5F_ACS_MPI_PARAMS_COMM_NAME, &file->comm) < 0)
+        HGOTO_ERROR(H5E_VFL, H5E_CANTGET, NULL, "can't get MPI communicator")
+    if (H5P_get(plist, H5F_ACS_MPI_PARAMS_INFO_NAME, &file->info) < 0)
+        HGOTO_ERROR(H5E_VFL, H5E_CANTGET, NULL, "can't get MPI info object")
 
     /* Set return value */
-    ret_value = fa;
+    ret_value = file;
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
@@ -3998,6 +4007,7 @@ done:
 static void *
 H5FD__mpio_fapl_copy(const void *_old_fa)
 {
+    H5P_genplist_t *plist;                /* Property list pointer */
     const H5FD_mpio_fapl_t *old_fa = (const H5FD_mpio_fapl_t*)_old_fa;
     H5FD_mpio_fapl_t	*new_fa = NULL;
     void		*ret_value = NULL;
@@ -4019,11 +4029,19 @@ H5FD__mpio_fapl_copy(const void *_old_fa)
     HDmemcpy(new_fa, old_fa, sizeof(H5FD_mpio_fapl_t));
 
     /* Duplicate communicator and Info object. */
-    if(H5FD_mpi_comm_info_dup(old_fa->comm, old_fa->info, &new_fa->comm, &new_fa->info) < 0)
-	HGOTO_ERROR(H5E_INTERNAL, H5E_CANTCOPY, NULL, "Communicator/Info duplicate failed")
+    //if(H5FD_mpi_comm_info_dup(old_fa->comm, old_fa->info, &new_fa->comm, &new_fa->info) < 0)
+	//  HGOTO_ERROR(H5E_INTERNAL, H5E_CANTCOPY, NULL, "Communicator/Info duplicate failed")
+    /* Get the MPI communicator and info object from the property list */
+
+
+    if (H5P_get(plist, H5F_ACS_MPI_PARAMS_COMM_NAME, &old_fa->comm) < 0)
+        HGOTO_ERROR(H5E_VFL, H5E_CANTGET, NULL, "can't get MPI communicator")
+    if (H5P_get(plist, H5F_ACS_MPI_PARAMS_INFO_NAME, &old_fa->info) < 0)
+        HGOTO_ERROR(H5E_VFL, H5E_CANTGET, NULL, "can't get MPI info object")
+
 
     /* Set return value */
-    ret_value = new_fa;
+    ret_value = old_fa;
 
 done:
     if(NULL == ret_value)
@@ -4076,7 +4094,9 @@ H5FD__mpio_fapl_free(void *_fa)
 
     /* Free the internal communicator and INFO object */
     HDassert(MPI_COMM_NULL != fa->comm);
-    H5FD_mpi_comm_info_free(&fa->comm, &fa->info);
+    //H5FD_mpi_comm_info_free(&fa->comm, &fa->info);
+    H5_mpi_comm_free(&fa->comm);    
+    H5_mpi_info_free(&fa->info);
     H5MM_xfree(fa);
 
 #ifdef H5FDmpio_DEBUG

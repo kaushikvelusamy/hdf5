@@ -331,9 +331,8 @@ H5_DLL herr_t H5S__point_get_seq_list(const H5S_t *space, unsigned flags, H5S_se
 H5_DLL herr_t H5S_mpio_return_space_rank_and_extent(const H5S_t *space, int *rank, hsize_t *extent);
 H5_DLL herr_t H5S_mpio_return_space_extent_and_select_type(H5S_t *space, hbool_t *is_permuted, 
     hbool_t *is_regular, H5S_class_t *space_extent_type, H5S_sel_type *space_sel_type);
-H5_DLL herr_t H5FD_mpi_comm_info_dup(MPI_Comm comm, MPI_Info info,
-				MPI_Comm *comm_new, MPI_Info *info_new);
-H5_DLL herr_t H5FD_mpi_comm_info_free(MPI_Comm *comm, MPI_Info *info);
+//H5_DLL herr_t H5FD_mpi_comm_info_dup(MPI_Comm comm, MPI_Info info,MPI_Comm *comm_new, MPI_Info *info_new);
+//H5_DLL herr_t H5FD_mpi_comm_info_free(MPI_Comm *comm, MPI_Info *info);
 #endif /* H5_HAVE_PARALLEL */
 
 #endif /* H5Sprivate_H */
