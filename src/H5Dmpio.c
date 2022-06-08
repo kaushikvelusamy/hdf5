@@ -1096,11 +1096,12 @@ H5D__contig_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type
                 H5Sclose(file_space_hid);
             if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
                 H5Sclose(mem_space_hid);
-        } else {
-        /* Call generic internal collective I/O routine */
-        if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
-            HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "couldn't finish shared collective MPI-IO")
         }
+    }
+    else {
+    /* Call generic internal collective I/O routine */
+    if (H5D__inter_collective_io(io_info, type_info, file_space, mem_space) < 0)
+        HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "couldn't finish shared collective MPI-IO")
     }
     /* Set the actual I/O mode property. internal_collective_io will not break to
      * independent I/O, so we set it here.
