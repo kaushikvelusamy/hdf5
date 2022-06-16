@@ -724,7 +724,7 @@ H5D__contig_write(H5D_io_info_t *io_info, const H5D_type_info_t *type_info, hsiz
          * because this is raw data) */
         if (H5F_shared_select_write(H5F_SHARED(io_info->dset->oloc.file), H5FD_MEM_DRAW, nelmts > 0 ? 1 : 0,
                                     &mem_space, &file_space, &(io_info->store->contig.dset_addr),
-                                    &dst_type_size, &(io_info->u.wbuf)) < 0)
+                                    &dst_type_size, io_info->u.wbuf) < 0)
             HGOTO_ERROR(H5E_DATASET, H5E_WRITEERROR, FAIL, "contiguous selection write failed")
     } /* end if */
     else
