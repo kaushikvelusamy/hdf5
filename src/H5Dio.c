@@ -578,7 +578,7 @@ H5D__ioinfo_init(H5D_t *dset, const H5D_type_info_t *type_info, H5D_storage_t *s
 
     /* Start with selection I/O off, layout callback will turn it on if
      * appropriate */
-    io_info->use_select_io = FALSE;
+    io_info->use_select_io = TRUE;
 
 #ifdef H5_HAVE_PARALLEL
     /* Determine if the file was opened with an MPI VFD */
@@ -822,7 +822,7 @@ H5D__ioinfo_adjust(H5D_io_info_t *io_info, const H5D_t *dset, const H5S_t *file_
              * selection I/O is to be used - in this case the file driver will
              * handle collective I/O */
             /* Check for selection/vector support in file driver? -NAF */
-            if (!io_info->use_select_io) {
+            if (io_info->use_select_io) {
                 io_info->io_ops.multi_read   = dset->shared->layout.ops->par_read;
                 io_info->io_ops.multi_write  = dset->shared->layout.ops->par_write;
                 io_info->io_ops.single_read  = H5D__mpio_select_read;
