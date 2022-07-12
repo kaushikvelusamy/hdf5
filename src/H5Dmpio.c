@@ -1013,8 +1013,7 @@ H5D__contig_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_
     if (do_custom_agg && (strcmp(do_custom_agg,"yes") == 0)) {
 
         /* Call shared_select_read (rather than `inter_collective` if using CCIO) */
-        file_space_hid = H5I_register(H5I_DATASPACE, file_space, TRUE);
-        mem_space_hid = H5I_register(H5I_DATASPACE, mem_space, TRUE);
+
         if (io_info->use_select_io) {
             size_t dst_type_size = type_info->dst_type_size;
             /* Issue selection I/O call (we can skip the page buffer because we've
@@ -1025,10 +1024,6 @@ H5D__contig_collective_read(H5D_io_info_t *io_info, const H5D_type_info_t *type_
                                                   &dst_type_size, &(io_info->u.rbuf)) < 0)
                 HGOTO_ERROR(H5E_DATASET, H5E_READERROR, FAIL, "contiguous selection read failed")
 
-            if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
-                H5Sclose(file_space_hid);
-            if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
-                H5Sclose(mem_space_hid);
         } 
     }
     else {
@@ -1079,8 +1074,6 @@ H5D__contig_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type
     do_custom_agg = HDgetenv("HDF5_CCIO_WR");
     if (do_custom_agg && (strcmp(do_custom_agg,"yes") == 0)) {
         /* Call shared_select_write (rather than `inter_collective` if using CCIO) */
-        hid_t file_space_hid = H5I_register(H5I_DATASPACE, file_space,TRUE);
-        hid_t mem_space_hid = H5I_register(H5I_DATASPACE, mem_space,TRUE);
 
         if (io_info->use_select_io) {
             size_t dst_type_size = type_info->dst_type_size;
@@ -1094,10 +1087,6 @@ H5D__contig_collective_write(H5D_io_info_t *io_info, const H5D_type_info_t *type
                                                    &dst_type_size, &(io_info->u.wbuf)) < 0)
                 HGOTO_ERROR(H5E_DATASET, H5E_WRITEERROR, FAIL, "contiguous selection write failed")
 
-            if(NULL != ((H5S_t *)H5I_object_verify(file_space_hid, H5I_DATASPACE)))
-                H5Sclose(file_space_hid);
-            if(NULL != ((H5S_t *)H5I_object_verify(mem_space_hid, H5I_DATASPACE)))
-                H5Sclose(mem_space_hid);
         }
     }
     else {

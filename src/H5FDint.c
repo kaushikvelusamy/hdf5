@@ -1198,13 +1198,15 @@ done:
         }
     }
 
-    /* Cleanup dataspace arrays */
+    /* Cleanup dataspace arrays - Currently handled at H5FD__mpio_read_selection */
+    /*    
     for (i = 0; i < num_spaces; i++) {
         if (H5I_dec_app_ref(mem_space_ids[i]) < 0)
             HDONE_ERROR(H5E_VFL, H5E_CANTDEC, FAIL, "problem freeing id")
         if (H5I_dec_app_ref(file_space_ids[i]) < 0)
             HDONE_ERROR(H5E_VFL, H5E_CANTDEC, FAIL, "problem freeing id")
     }
+    */  
     if (mem_space_ids != mem_space_ids_local)
         mem_space_ids = H5MM_xfree(mem_space_ids);
     if (file_space_ids != file_space_ids_local)
@@ -1831,13 +1833,15 @@ done:
         }
     }
 
-    /* Cleanup dataspace arrays */
+    /* Cleanup dataspace arrays - Currently handled at H5FD__mpio_write_selection*/
+    /*     
     for (i = 0; i < num_spaces; i++) {
         if (H5I_dec_app_ref(mem_space_ids[i]) < 0)
             HDONE_ERROR(H5E_VFL, H5E_CANTDEC, FAIL, "problem freeing id")
         if (H5I_dec_app_ref(file_space_ids[i]) < 0)
             HDONE_ERROR(H5E_VFL, H5E_CANTDEC, FAIL, "problem freeing id")
     }
+    */    
     if (mem_space_ids != mem_space_ids_local)
         mem_space_ids = H5MM_xfree(mem_space_ids);
     if (file_space_ids != file_space_ids_local)
